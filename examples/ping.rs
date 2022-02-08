@@ -20,7 +20,7 @@ fn main() {
     };
 
     let ip_string = "192.168.1.1-192.168.4.255";
-    let ip_string = "21.239.50.1-21.239.50.255";
+    let ip_string = "21.239.50.1-21.239.51.255";
     let ip_vec: Vec<&str> = ip_string.split("-").collect();
     if ip_vec.len() != 2 {
         panic!("wrong input")
@@ -45,6 +45,7 @@ fn main() {
         }
     }
     pinger.add_ipaddr("127.0.0.1");
+
     pinger.add_ipaddr("8.8.8.8");
     pinger.add_ipaddr("1.1.1.1");
     pinger.add_ipaddr("7.7.7.7");
