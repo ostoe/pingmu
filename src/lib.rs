@@ -133,6 +133,10 @@ impl Pinger {
         };
     }
 
+    pub fn get_target_count(&self) -> u32 {
+        self.targets.lock().unwrap().len() as u32
+    }
+
     // remove a previously added ipv4 or ipv6 target address
     pub fn remove_ipaddr(&self, ipaddr: &str) {
         let addr = ipaddr.parse::<IpAddr>();

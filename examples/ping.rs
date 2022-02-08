@@ -9,8 +9,9 @@ use fastping_rs::PingResult::{Idle, Receive};
 use fastping_rs::Pinger;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
-use std::time::Instant;
+use std::time::{Duration};
 use chrono::{DateTime, Utc};
+use std::sync::mpsc::channel;
 
 fn main() {
     // pretty_env_logger::init();
@@ -20,7 +21,7 @@ fn main() {
     };
 
     let ip_string = "192.168.1.1-192.168.4.255";
-    let ip_string = "21.239.50.1-21.239.51.255";
+    let ip_string = "21.239.50.1-21.239.50.2";
     let ip_vec: Vec<&str> = ip_string.split("-").collect();
     if ip_vec.len() != 2 {
         panic!("wrong input")
@@ -50,14 +51,25 @@ fn main() {
     pinger.add_ipaddr("1.1.1.1");
     pinger.add_ipaddr("7.7.7.7");
     pinger.add_ipaddr("2001:4860:4860::8888");
-    println!("add ok!");
-    pinger.run_pinger(4);
+    println!("add ips completed!");
+    let ping_times: u32 = 1;
+    pinger.run_pinger(ping_times);
+
+    // receive result segment
+    let target_ips = pinger.get_target_count() as u64;
+    let mut count = target_ips * ping_times as u64;
+    println!("{}", count);
+    let mut epoch_reset_count: u64 = 0;
+    let (tx, rx) = channel();
+    ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel."))
+        .expect("Error setting Ctrl-C handler");
+    println!("Waiting for Ctrl-C...");
 
     loop {
         match results.recv() {
             Ok(result) => match result {
                 Idle { addr } => {
-                    // println!("Idle Address {}.", addr);
+                    println!("Idle Address {}.", addr);
                 }
                 Receive { addr, rtt , recv_duration} => {
                     let now: DateTime<Utc> = Utc::now();
@@ -65,6 +77,31 @@ fn main() {
                 }
             },
             Err(_) => panic!("Worker threads disconnected before the solution was found!"),
+        }
+
+
+        epoch_reset_count += 1;
+        if epoch_reset_count == target_ips {
+            epoch_reset_count = 0;
+            match rx.recv_timeout(Duration::from_millis(10)) {
+                Ok(a) => {
+                    println!("Exit by Ctrl+C");
+                    // todo save ping result
+                    break;
+                }
+                Err(e) => {
+                    println!("error: {}", e);
+                }
+            }
+        }
+        if ping_times == 0 {
+            continue;
+        } else if count == 1 { // 因为是先判断，后-
+            println!("stop");
+            // todo save
+            break;
+        } else {
+            count -= 1;
         }
     }
 }
