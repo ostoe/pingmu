@@ -186,9 +186,10 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
                 ips_vec.push(x.to_string());
             }
         } else if ip_string.contains(".") {
-            Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| {
+            let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| {
                 panic!("{}", e)
             });
+            ips_vec.push(ip.to_string());
         } else {
             panic!("error input.")
         }
