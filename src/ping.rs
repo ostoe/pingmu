@@ -166,9 +166,9 @@ pub fn send_pings(
                                 ping.seen = true;
                                 // Send the ping result over the client channel
                                 match results_sender.send(PingResult::Receive {
-                                    addr: ping_result.addr,
+                                    addr: addr,
                                     rtt: ping_result.rtt,
-                                    recv_duration: ping_result.recv_time.duration_since(ping.send_time)
+                                    recv_duration: recv_time.duration_since(ping.send_time)
                                 }) {
                                     Ok(_) => {}
                                     Err(e) => {

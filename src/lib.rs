@@ -5,6 +5,9 @@ extern crate log;
 extern crate rand;
 
 mod ping;
+pub mod save;
+
+pub use save::{ PingRecord, Delay };
 
 use ping::{send_pings, Ping, ReceivedPing};
 use pnet::packet::icmp::echo_reply::EchoReplyPacket;
@@ -450,3 +453,5 @@ mod tests {
         }
     }
 }
+
+
