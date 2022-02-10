@@ -237,3 +237,45 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
 //
 //
 // }
+
+
+
+fn ip_range_to_list(ip_range: &str) -> Vec<String> {
+    // let ip_range =
+    let x: Vec<&str> = ip_range.split("-").collect();
+    // println!("{:?}", x);
+    let ip1 = x[0];
+    let ip2 = x[1];
+    let ip1_string = ip_str_to_hex(ip1);
+    // println!("{}", ip1_string);
+    let ip2_string = ip_str_to_hex(ip2);
+    // println!("{}", ip2_string);
+    let ip1_int = u64::from_str_radix( ip1_string.as_str(), 16).unwrap();
+    let ip2_int = u64::from_str_radix(ip2_string.as_str(), 16).unwrap();
+    // println!("{} {}", ip1_int, ip2_int);
+    // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
+    let mut ip_vec: Vec<String> = vec![];
+    for ip in ip1_int..=ip2_int {
+        let ip_str = format!("{:x}", ip);
+        // println!("{}-{}-{}-{}", &ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]);
+        let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
+        let ip_u8_arr = ip_str_arr.map(move |a| {
+            u8::from_str_radix(a, 16).unwrap().to_string()
+        });
+        ip_vec.push(ip_u8_arr.join("."));
+        // println!("{}", ip_u8_arr.join("."));
+    }
+    ip_vec
+}
+
+
+
+fn ip_str_to_hex(s: &str) -> String {
+    let ip1_vec: Vec<&str> = s.split(".").collect();
+    let ip1_arr: [&str;4] = ip1_vec.try_into().unwrap();
+    let ip1_str_arr = ip1_arr.map(move|a| {
+        format!("{:0>2x}", a.parse::<u8>().unwrap())
+    });
+
+    ip1_str_arr.join("")
+}
