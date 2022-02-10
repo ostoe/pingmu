@@ -1,4 +1,4 @@
-extern crate fastping_rs;
+extern crate pingmu;
 // extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
@@ -6,15 +6,15 @@ extern crate log;
 extern crate prettytable;
 // use chrono::{DateTime, Utc};
 // use crate::chrono::prelude::{};
-use fastping_rs::PingResult::{Idle, Receive};
-use fastping_rs::{Pinger, PingRecord, Delay, PingResult};
+// use fastping_rs::PingResult::{Idle, Receive};
+use pingmu::{Pinger, PingRecord, Delay, PingResult};
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::time::{Duration};
 use chrono::{DateTime, Utc};
 use std::sync::mpsc::channel;
-use fastping_rs::save;
-
+use pingmu::save;
+use pingmu::PingResult::{Receive, Idle};
 
 
 fn main() {
@@ -41,7 +41,7 @@ fn main() {
     // pinger.add_ipaddr("2001:4860:4860::8888");
     println!("add ips completed!");
     // let ping_times: u32 = 4;
-    let save_csv_path = "/Users/fly/workspace/Rust/fastping-rs/fff.csv";
+    let save_csv_path = "/Users/fly/workspace/Rust/pingmu/fff.csv";
     pinger.run_pinger(ping_times);
 
     // receive result segment
@@ -106,7 +106,7 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "ping number of times", "filename", "cidr or range", "ip"]);
+    help_table.add_row(row![" ", " ",  "ping number of times", "filename", "cidr or range", " or ip"]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
@@ -133,7 +133,6 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
     if (&args[2]).contains("csv") {
         filename = Some(args[2].to_string())
     } else if  (&args[2]).contains(".") {
-
 
     } else {
         help_table.printstd();

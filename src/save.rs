@@ -7,8 +7,6 @@ use std::fs::File;
 use csv;
 use std::io::Error;
 use csv::Writer;
-#[macro_use]
-// extern crate prettytable;
 
 pub struct PingRecord {
     pub ipaddress: String,
