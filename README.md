@@ -1,4 +1,4 @@
-# fastping-rs
+# pingmu
  ICMP ping library in Rust inspired by go-fastping and AnyEvent::FastPing Perl module
 
 `sudo ./pingmu -h`:
