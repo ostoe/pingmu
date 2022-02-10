@@ -15,17 +15,18 @@ use chrono::{DateTime, Utc};
 use std::sync::mpsc::channel;
 use pingmu::save;
 use pingmu::PingResult::{Receive, Idle};
+use std::num::ParseIntError;
 
 
 fn main() {
-    let (ping_times, filename, ips_vec) = detect_cli_input();
+    let (ping_times, timeout, filename, ips_vec) = detect_cli_input();
     // let m = PingRecord {
     //     ipaddress: "192.168.1.1".to_string(),
     //     delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
     // };
     // println!("{}", m);
     // pretty_env_logger::init();
-    let (pinger, results) = match Pinger::new(Some(2000 as u64), Some(64)) {
+    let (pinger, results) = match Pinger::new(Some(timeout as u64), Some(64)) {
         Ok((pinger, results)) => (pinger, results),
         Err(e) => panic!("Error creating pinger: {}", e),
     };
@@ -84,7 +85,7 @@ fn main() {
                     break;
                 }
                 Err(e) => {
-                    println!("error: {}", e);
+                    println!("info: {}", e);
                 }
             }
         }
@@ -101,19 +102,21 @@ fn main() {
     }
 }
 
-fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
+fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     use prettytable::{Table, Row, Cell};
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "ping number of times", "filename", "cidr or range", " or ip"]);
+    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", "filename", "cidr or range or ip", "..."]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
         Cell::new("pingmu"),
         Cell::new("4"),
+        Cell::new("2000"),
         Cell::new("out.csv"),
-        Cell::new("192.168.1.1/30")]));
+        Cell::new("192.168.1.1/30"),
+        Cell::new("192.168.2.1-192.168.3.255")]));
     // Print the table to stdout
     // println!("{}", table);
 
@@ -122,7 +125,7 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         std::process::exit(1);
     }
     let times =  args[1].parse::<u32>().unwrap_or_else(move|e| {
@@ -130,23 +133,49 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
     });
     let mut filename: Option<String> = None;
     let mut ips_vec: Vec<String> = vec![];
-    if (&args[2]).contains("csv") {
-        filename = Some(args[2].to_string())
-    } else if  (&args[2]).contains(".") {
+
+    let mut sub_v_flag: usize = 2;
+    // let mut timeout: u32;
+    let timeout =  match args[sub_v_flag].parse::<u32>() {
+        Ok(a) => {
+            sub_v_flag += 1;
+            a
+        },
+        _ => 2000 // default timeout = 2000ms
+    };
+
+    if (&args[sub_v_flag]).ends_with(".csv") {
+        filename = Some(args[sub_v_flag].to_string());
+        sub_v_flag += 1;
+    } else if  (&args[sub_v_flag]).contains(".") {
 
     } else {
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 4 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         std::process::exit(1);
     }
 
-    let sub_v: usize;
-    if let Some(_) = filename {
-        sub_v = 3;
-    } else {
-        sub_v = 2;
-    }
-    for i in sub_v..args.len() {
+    // else {
+    //     // === before
+    //     if (&args[2]).contains("csv") {
+    //         filename = Some(args[2].to_string())
+    //     } else if  (&args[2]).contains(".") {
+    //
+    //     } else {
+    //         help_table.printstd();
+    //         println!("example:\nsudo pingmu 10 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+    //         std::process::exit(1);
+    //     }
+    // }
+
+    // let sub_v: usize;
+    // if let Some(_) = filename {
+    //     sub_v = 3;
+    // } else {
+    //     sub_v = 2;
+    // }
+
+    for i in sub_v_flag..args.len() {
         let ip_string = (&args[i]).trim();
         if ip_string.contains("-") {
             let ip_vec: Vec<&str> = ip_string.split("-").collect();
@@ -195,7 +224,7 @@ fn detect_cli_input() -> (u32, Option<String>, Vec<String>) {
     }
 
     println!("{:?}", ips_vec);
-    return (times, filename, ips_vec)
+    return (times, timeout, filename, ips_vec)
 }
 
 // fn parse_ipaddress(ipdes: &str) -> Vec<String> {
