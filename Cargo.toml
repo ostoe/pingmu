@@ -1,6 +1,6 @@
 [package]
 name = "pingmu"
-version = "0.1"
+version = "0.0.1"
 authors = ["bparli <bparli@gmail.com>", "ostoe <linhaifly@163.com>"]
 license = "MIT"
 #homepage = "https://github.com/bparli/fastping-rs"
