@@ -258,7 +258,8 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
     // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
     let mut ip_vec: Vec<String> = vec![];
     for ip in ip1_int..=ip2_int {
-        let ip_str = format!("{:x}", ip);
+        let ip_str = format!("{:0>8x}", ip);
+        println!("{}", ip_str);
         // println!("{}-{}-{}-{}", &ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]);
         let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
         let ip_u8_arr = ip_str_arr.map(move |a| {
