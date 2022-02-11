@@ -16,6 +16,7 @@ use std::sync::mpsc::channel;
 use pingmu::save;
 use pingmu::PingResult::{Receive, Idle};
 use std::num::ParseIntError;
+use std::convert::TryInto;
 
 
 fn main() {
@@ -178,34 +179,35 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     for i in sub_v_flag..args.len() {
         let ip_string = (&args[i]).trim();
         if ip_string.contains("-") {
-            let ip_vec: Vec<&str> = ip_string.split("-").collect();
-            if ip_vec.len() != 2 {
-                panic!("wrong input")
-            }
-            let ip1 = Ipv4Addr::from_str(ip_vec[0]).unwrap_or_else(move |e| {
-                panic!("{}", e)
-            }).octets();
-            let ip2 = Ipv4Addr::from_str(ip_vec[1]).unwrap_or_else(move |e| {
-                panic!("{}", e)
-            }).octets();
-            //
-            if ip1[0] != ip2[0] || ip1[1] != ip2[1] {
-                panic!("wrong input")
-            } else if ip1[2] != ip2[2] {
-                for j in ip1[2]..=ip2[2] {
-                    for i in ip1[3]..=ip2[3] {
-                        let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], j, i);
-                        ips_vec.push(ip_ji.to_string());
-                        // pinger.add_ipaddr(&ip_ji.to_string())
-                    }
-                }
-            } else if ip1[2] == ip2[2] {
-                for i in ip1[3]..=ip2[3] {
-                    let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], ip2[2], i);
-                    ips_vec.push(ip_ji.to_string());
-                    // pinger.add_ipaddr(&ip_ji.to_string())
-                }
-            }
+            ips_vec.append(&mut ip_range_to_list(ip_string));
+            // let ip_vec: Vec<&str> = ip_string.split("-").collect();
+            // if ip_vec.len() != 2 {
+            //     panic!("wrong input")
+            // }
+            // let ip1 = Ipv4Addr::from_str(ip_vec[0]).unwrap_or_else(move |e| {
+            //     panic!("{}", e)
+            // }).octets();
+            // let ip2 = Ipv4Addr::from_str(ip_vec[1]).unwrap_or_else(move |e| {
+            //     panic!("{}", e)
+            // }).octets();
+            // //
+            // if ip1[0] != ip2[0] || ip1[1] != ip2[1] {
+            //     panic!("wrong input")
+            // } else if ip1[2] != ip2[2] {
+            //     for j in ip1[2]..=ip2[2] {
+            //         for i in ip1[3]..=ip2[3] {
+            //             let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], j, i);
+            //             ips_vec.push(ip_ji.to_string());
+            //             // pinger.add_ipaddr(&ip_ji.to_string())
+            //         }
+            //     }
+            // } else if ip1[2] == ip2[2] {
+            //     for i in ip1[3]..=ip2[3] {
+            //         let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], ip2[2], i);
+            //         ips_vec.push(ip_ji.to_string());
+            //         // pinger.add_ipaddr(&ip_ji.to_string())
+            //     }
+            // }
         } else if ip_string.contains("/") {
             let ips = ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| {
                 panic!("{}", e)
