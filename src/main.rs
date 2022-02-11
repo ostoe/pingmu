@@ -152,7 +152,7 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
 
     } else {
         help_table.printstd();
-        println!("example:\nsudo pingmu 4 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo ./pingmu 4 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         std::process::exit(1);
     }
 
