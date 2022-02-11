@@ -127,6 +127,26 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
         println!("do not > 4w ips");
         help_table.printstd();
         println!("example:\nsudo pingmu 10 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        let mut help_table = Table::new();
+        // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
+        println!("\nout.csv: value example");
+        help_table.add_row(Row::new(vec![
+            Cell::new("ip"),
+            Cell::new("loss(%)"),
+            Cell::new("min(ms)"),
+            Cell::new("avg(ms)"),
+            Cell::new("max(ms)"),
+            Cell::new("stddev"),
+            Cell::new("...(ms)")]));
+        help_table.add_row(Row::new(vec![
+            Cell::new("192.168.10.x"),
+            Cell::new("0%"),
+            Cell::new("5.93"),
+            Cell::new("15.37"),
+            Cell::new("20.00"),
+            Cell::new("32"),
+            Cell::new("10")]));
+        help_table.printstd();
         std::process::exit(1);
     }
     let times =  args[1].parse::<u32>().unwrap_or_else(move|e| {

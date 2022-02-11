@@ -73,8 +73,12 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
         }
     }
     let mut wtr: Writer<File>;
+    let mut total_ip_loss = 0u64;
+    let mut total_icmp_loss = 0u64;
+    let mut total_icmp_echo = 0u64;
     if let Some(path) = filename {
         wtr = csv::Writer::from_path(path.as_str()).unwrap();
+
         for (k, v) in map.iter() {
             let mut line:Vec<String> = vec![];
             print!("{:width$}[", k, width=26);
@@ -91,11 +95,13 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
                         if time_ms < min { min = time_ms }
                         sum += time_ms as f64;
                         array.push(time_ms);
+                        total_icmp_echo += 1;
                     },
-                    _ => {},
+                    _ => { total_icmp_loss += 1; },
                 }
             }
             if array.len() == 0 {
+                total_ip_loss += 1;
                 line.push("100%".to_string()); // loss
                 line.push("NaN".to_string());  // min
                 line.push("NaN".to_string());  // avg
@@ -135,25 +141,19 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     use prettytable::{Table, Row, Cell};
     // Add a row per time
 
+
     let mut help_table = Table::new();
     // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
-    println!("csv value example");
+
     help_table.add_row(Row::new(vec![
-        Cell::new("ip"),
-        Cell::new("loss(%)"),
-        Cell::new("min(ms)"),
-        Cell::new("avg(ms)"),
-        Cell::new("max(ms)"),
-        Cell::new("stddev"),
-        Cell::new("...(ms)")]));
+        Cell::new("total_loss_ip/total_ip"),
+        Cell::new("total_loss(%)"),
+        ]));
     help_table.add_row(Row::new(vec![
-        Cell::new("192.168.10.x"),
-        Cell::new("0%"),
-        Cell::new("5.93"),
-        Cell::new("15.37"),
-        Cell::new("20.00"),
-        Cell::new("32"),
-        Cell::new("10")]));
+        Cell::new(format!("{}/{}", total_ip_loss, map.len()).as_str()),
+        Cell::new(format!("{:.2}%", total_icmp_loss as f64 /
+            (total_icmp_echo + total_icmp_loss) as f64 * 100.0).as_str()),
+        ]));
     help_table.printstd();
 
     Ok(())
