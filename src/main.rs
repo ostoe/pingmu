@@ -17,6 +17,10 @@ use pingmu::save;
 use pingmu::PingResult::{Receive, Idle};
 use std::num::ParseIntError;
 use std::convert::TryInto;
+use std::fs::File;
+use std::io::{self, BufRead};
+use std::path::Path;
+
 
 
 fn main() {
@@ -49,7 +53,7 @@ fn main() {
     // receive result segment
     let target_ips = pinger.get_target_count() as u64;
     let mut count = target_ips * ping_times as u64;
-    println!("{}", count);
+    println!("ip address numbers: {}", count);
     let mut epoch_reset_count: u64 = 0;
     let (tx, rx) = channel();
     ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel."))
@@ -108,13 +112,14 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", "filename", "cidr or range or ip", "..."]);
+    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", "input.text","filename", "cidr or range or ip", "..."]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
         Cell::new("pingmu"),
         Cell::new("4"),
         Cell::new("2000"),
+        Cell::new("input.text"),
         Cell::new("out.csv"),
         Cell::new("192.168.1.1/30"),
         Cell::new("192.168.2.1-192.168.3.255")]));
@@ -126,7 +131,7 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -164,6 +169,23 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
         },
         _ => 2000 // default timeout = 2000ms
     };
+    if (&args[sub_v_flag]).contains(".text") || (&args[sub_v_flag]).starts_with("input") {
+        println!("detect input file");
+        if let Ok(lines) = read_lines(args[sub_v_flag].to_string()) {
+            // 使用迭代器，返回一个（可选）字符串
+            for line in lines {
+                if let Ok(ip) = line {
+                    let ip = ip.trim().to_string();
+                    let ip = Ipv4Addr::from_str(&ip).unwrap_or_else(move |e| {
+                        panic!("convert ip error: {}", e)
+                    });
+                    ips_vec.push(ip.to_string());
+                }
+            }
+        }
+
+        sub_v_flag += 1;
+    }
 
     if (&args[sub_v_flag]).ends_with(".csv") {
         filename = Some(args[sub_v_flag].to_string());
@@ -200,34 +222,6 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
         let ip_string = (&args[i]).trim();
         if ip_string.contains("-") {
             ips_vec.append(&mut ip_range_to_list(ip_string));
-            // let ip_vec: Vec<&str> = ip_string.split("-").collect();
-            // if ip_vec.len() != 2 {
-            //     panic!("wrong input")
-            // }
-            // let ip1 = Ipv4Addr::from_str(ip_vec[0]).unwrap_or_else(move |e| {
-            //     panic!("{}", e)
-            // }).octets();
-            // let ip2 = Ipv4Addr::from_str(ip_vec[1]).unwrap_or_else(move |e| {
-            //     panic!("{}", e)
-            // }).octets();
-            // //
-            // if ip1[0] != ip2[0] || ip1[1] != ip2[1] {
-            //     panic!("wrong input")
-            // } else if ip1[2] != ip2[2] {
-            //     for j in ip1[2]..=ip2[2] {
-            //         for i in ip1[3]..=ip2[3] {
-            //             let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], j, i);
-            //             ips_vec.push(ip_ji.to_string());
-            //             // pinger.add_ipaddr(&ip_ji.to_string())
-            //         }
-            //     }
-            // } else if ip1[2] == ip2[2] {
-            //     for i in ip1[3]..=ip2[3] {
-            //         let ip_ji = Ipv4Addr::new(ip1[0], ip1[1], ip2[2], i);
-            //         ips_vec.push(ip_ji.to_string());
-            //         // pinger.add_ipaddr(&ip_ji.to_string())
-            //     }
-            // }
         } else if ip_string.contains("/") {
             let ips = ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| {
                 panic!("{}", e)
@@ -279,7 +273,7 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
     let mut ip_vec: Vec<String> = vec![];
     for ip in ip1_int..=ip2_int {
         let ip_str = format!("{:0>8x}", ip);
-        println!("{}", ip_str);
+        // println!("{}", ip_str);
         // println!("{}-{}-{}-{}", &ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]);
         let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
         let ip_u8_arr = ip_str_arr.map(move |a| {
@@ -301,4 +295,10 @@ fn ip_str_to_hex(s: &str) -> String {
     });
 
     ip1_str_arr.join("")
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+    where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }
