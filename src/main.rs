@@ -112,13 +112,14 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", "input.text","filename", "cidr or range or ip", "..."]);
+    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", " send interval(us)", "input.text","filename", "cidr or range or ip", "..."]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
         Cell::new("pingmu"),
         Cell::new("4"),
         Cell::new("2000"),
+        Cell::new("100"),
         Cell::new("input.text"),
         Cell::new("out.csv"),
         Cell::new("192.168.1.1/30"),
@@ -131,7 +132,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 100 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 2000 10 100 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -203,7 +204,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
 
     } else {
         help_table.printstd();
-        println!("example:\nsudo ./pingmu 4 2000 out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo ./pingmu 4 2000 1000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         std::process::exit(1);
     }
 
