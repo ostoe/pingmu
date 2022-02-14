@@ -153,7 +153,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
         ]));
     help_table.add_row(Row::new(vec![
         Cell::new(format!("{}/{}", total_ip_loss, map.len()).as_str()),
-        Cell::new(format!("{:.2}%", total_icmp_loss as f64 /
+        Cell::new(format!("{:.4}%", total_icmp_loss as f64 /
             (total_icmp_echo + total_icmp_loss) as f64 * 100.0).as_str()),
         ]));
     help_table.printstd();
