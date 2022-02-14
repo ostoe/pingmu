@@ -161,17 +161,17 @@ impl Pinger {
     }
 
     // run one round of pinging and stop
-    pub fn ping_once(&self) {
-        self.run_pings(Some(0))
+    pub fn ping_once(&self, interval:u64) {
+        self.run_pings(Some(0), interval)
     }
 
     // run the continuous pinger
-    pub fn run_pinger(&self, n: u32) {
-        self.run_pings(Some(n))
+    pub fn run_pinger(&self, n: u32, interval:u64) {
+        self.run_pings(Some(n), interval)
     }
 
     // run pinger either once or continuously
-    fn run_pings(&self, run_n_of_times: Option<u32>) {
+    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64) {
         let thread_rx = self.thread_rx.clone();
         let tx = self.tx.clone();
         let txv6 = self.txv6.clone();
@@ -209,6 +209,7 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
+                            interval
                         );
                     }
                 });
@@ -226,6 +227,7 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
+                            interval
                         );
                     }
                 });

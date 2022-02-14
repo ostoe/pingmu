@@ -24,7 +24,7 @@ use std::path::Path;
 
 
 fn main() {
-    let (ping_times, timeout, filename, ips_vec) = detect_cli_input();
+    let (ping_times, timeout,interval, filename, ips_vec) = detect_cli_input();
     // let m = PingRecord {
     //     ipaddress: "192.168.1.1".to_string(),
     //     delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
@@ -48,7 +48,7 @@ fn main() {
     println!("add ips completed!");
     // let ping_times: u32 = 4;
     let save_csv_path = "/Users/fly/workspace/Rust/pingmu/fff.csv";
-    pinger.run_pinger(ping_times);
+    pinger.run_pinger(ping_times, interval);
 
     // receive result segment
     let target_ips = pinger.get_target_count() as u64;
@@ -107,7 +107,7 @@ fn main() {
     }
 }
 
-fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
+fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     use prettytable::{Table, Row, Cell};
     // Add a row per time
 
@@ -131,7 +131,7 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 100 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -169,6 +169,15 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
         },
         _ => 2000 // default timeout = 2000ms
     };
+    let interval =  match args[sub_v_flag].parse::<u32>() {
+        Ok(a) => {
+            sub_v_flag += 1;
+            a as u64
+        },
+        _ => 100 // default timeout = 2000ms
+    };
+
+
     if (&args[sub_v_flag]).contains(".text") || (&args[sub_v_flag]).starts_with("input") {
         println!("detect input file");
         if let Ok(lines) = read_lines(args[sub_v_flag].to_string()) {
@@ -240,7 +249,7 @@ fn detect_cli_input() -> (u32, u32, Option<String>, Vec<String>) {
     }
 
     println!("{:?}", ips_vec);
-    return (times, timeout, filename, ips_vec)
+    return (times, timeout, interval, filename, ips_vec)
 }
 
 // fn parse_ipaddress(ipdes: &str) -> Vec<String> {

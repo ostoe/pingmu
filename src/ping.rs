@@ -114,11 +114,13 @@ pub fn send_pings(
     txv6: &Arc<Mutex<TransportSender>>,
     targets: &Arc<Mutex<BTreeMap<IpAddr, Ping>>>,
     max_rtt: &Arc<Duration>,
+    interval: u64,
 ) {
 // loop {
     targets.lock().unwrap().len();
     let start_time_0 = Instant::now();
     for (addr, ping) in targets.lock().unwrap().iter_mut() {
+
         ping.send_time = Instant::now();
         match if addr.is_ipv4() {
             send_echo(&mut tx.lock().unwrap(), ping, size)
@@ -131,6 +133,9 @@ pub fn send_pings(
             _ => {}
         }
         ping.seen = false;
+
+        thread::sleep(Duration::from_micros(interval));
+
     }
     println!("send elapsed: {:?}", start_time_0.elapsed());
     // thread::sleep(Duration::from_millis(2));
