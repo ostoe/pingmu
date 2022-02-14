@@ -7,6 +7,7 @@ use std::fs::File;
 use csv;
 use std::io::Error;
 use csv::Writer;
+// use std::path::Path;
 
 pub struct PingRecord {
     pub ipaddress: String,
@@ -76,6 +77,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     let mut total_ip_loss = 0u64;
     let mut total_icmp_loss = 0u64;
     let mut total_icmp_echo = 0u64;
+
     if let Some(path) = filename {
         wtr = csv::Writer::from_path(path.as_str()).unwrap();
 
@@ -159,6 +161,9 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     Ok(())
 
 }
+
+
+
 
 #[cfg(test)]
 mod tests {

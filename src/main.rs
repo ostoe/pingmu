@@ -132,7 +132,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 2000 10 100 2000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 2000 100 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -198,7 +198,10 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     }
 
     if (&args[sub_v_flag]).ends_with(".csv") {
-        filename = Some(args[sub_v_flag].to_string());
+        // check_file(args[sub_v_flag])
+        let x = check_file(&args[sub_v_flag].to_string());
+        println!("x{}", x);
+        filename = Some(x);
         sub_v_flag += 1;
     } else if  (&args[sub_v_flag]).contains(".") {
 
@@ -311,4 +314,27 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     where P: AsRef<Path>, {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
+}
+
+
+fn check_file(path: &str) -> String {
+    // std::fs::metadata(path).is_ok();
+    if Path::new(path.trim()).is_file() {
+        let now: DateTime<Utc> = Utc::now();
+        let s_vec: Vec<&str> = path.trim().split(".").collect();
+        let mut a: String = (&s_vec[0..(s_vec.len()-1)]).join("");
+        // let f_now = time::strftime("%Y%m%d_%H%M%S", &now).unwrap();
+        // let b = &s_vec[s_vec.len()-1];
+        let time_s = now.format("%Y%m%d_%H%M%S").to_string();
+        a.push_str(&time_s);
+        a.push_str(".csv");
+        // if Path::new(&a).is_file() {
+        //     a = "1".to_string() + &a;
+        // }
+        return a;
+    } else {
+        return String::from(path);
+
+    }
+    // let file =  std::fs::try_exists(path);
 }

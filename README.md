@@ -28,6 +28,13 @@ fork from fasting-rs
 Only supported on linux and osx for now (Windows will likely not work).  
 
 
+### static build:
+```shell
+rustup target add x86_64-unknown-linux-musl
+cargo build --release --target x86_64-unknown-linux-musl
+```
+
+
 todo list:
  - fixed x.x.x.0 ip
  - analysis the result to pretty table.
