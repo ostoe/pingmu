@@ -24,7 +24,7 @@ use std::path::Path;
 
 
 fn main() {
-    let (ping_times, timeout,interval, filename, ips_vec) = detect_cli_input();
+    let (ping_times, timeout,interval, filename, ips_vec, is_log) = detect_cli_input();
     // let m = PingRecord {
     //     ipaddress: "192.168.1.1".to_string(),
     //     delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
@@ -70,7 +70,9 @@ fn main() {
                     }
                     Receive { addr, rtt , recv_duration} => {
                         let now: DateTime<Utc> = Utc::now();
-                        println!("[{}]Receive from Address {} in {:?}.",now.format("%H:%M:%S"), addr, recv_duration);
+                        if is_log {
+                            println!("[{}]Receive from Address {} in {:?}.",now.format("%H:%M:%S"), addr, recv_duration);
+                        }
                     }
                 }
                 ping_record_result.push(result);
@@ -90,7 +92,8 @@ fn main() {
                     break;
                 }
                 Err(e) => {
-                    println!("info: {}", e);
+                    // info receive timeout interval log.
+                    // println!("info: {}", e);
                 }
             }
         }
@@ -107,12 +110,13 @@ fn main() {
     }
 }
 
-fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
+fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     use prettytable::{Table, Row, Cell};
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "ping number of times", "ping timeout(ms)", " send interval(us)", "input.text","filename", "cidr or range or ip", "..."]);
+    help_table.add_row(row![" ", " ",  "per ip number of times", "timeout(ms)", "send interval(us)",
+        "input.text", "filename", "is log(optional; default true)", "cidr or range or ip", "..."]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
@@ -122,6 +126,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
         Cell::new("100"),
         Cell::new("input.text"),
         Cell::new("out.csv"),
+        Cell::new("nolog"),
         Cell::new("192.168.1.1/30"),
         Cell::new("192.168.2.1-192.168.3.255")]));
     // Print the table to stdout
@@ -132,7 +137,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 2000 100 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -178,7 +183,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
         _ => 100 // default timeout = 2000ms
     };
 
-
+    // check text
     if (&args[sub_v_flag]).contains(".text") || (&args[sub_v_flag]).starts_with("input") {
         println!("detect input file");
         if let Ok(lines) = read_lines(args[sub_v_flag].to_string()) {
@@ -196,18 +201,26 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
 
         sub_v_flag += 1;
     }
-
+    // check .csv
     if (&args[sub_v_flag]).ends_with(".csv") {
         // check_file(args[sub_v_flag])
         let x = check_file(&args[sub_v_flag].to_string());
         println!("x{}", x);
         filename = Some(x);
         sub_v_flag += 1;
-    } else if  (&args[sub_v_flag]).contains(".") {
+    }
+
+    // check is DE log; default log print.
+    let mut is_log = true;
+    if (&args[sub_v_flag]).ends_with("nolog") {
+        is_log = false
+    }
+
+    // check the last parameter correctly.
+    else if  (&args[sub_v_flag]).contains(".") {
 
     } else {
-        help_table.printstd();
-        println!("example:\nsudo ./pingmu 4 2000 1000 input.text out.csv 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("./pingmu -h / --help");
         std::process::exit(1);
     }
 
@@ -253,7 +266,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>) {
     }
 
     println!("{:?}", ips_vec);
-    return (times, timeout, interval, filename, ips_vec)
+    return (times, timeout, interval, filename, ips_vec, is_log)
 }
 
 // fn parse_ipaddress(ipdes: &str) -> Vec<String> {
