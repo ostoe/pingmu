@@ -77,7 +77,8 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     let mut total_ip_loss = 0u64;
     let mut total_icmp_loss = 0u64;
     let mut total_icmp_echo = 0u64;
-
+    let mut global_max_ms: f32 = 0.0;
+    let mut global_avs_ms: f32 = 0.0;
     if let Some(path) = filename {
         wtr = csv::Writer::from_path(path.as_str()).unwrap();
 
@@ -85,7 +86,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
             let mut line:Vec<String> = vec![];
             print!("{:width$}[", k, width=26);
             line.push(k.to_string());
-            let mut array : Vec<f32> = vec![];
+            let mut not_idle_array: Vec<f32> = vec![];
             let mut min: f32 = 100000000.0;
             let mut max: f32 = 0.0;
             let mut sum: f64 = 0.0;
@@ -96,13 +97,13 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
                         if time_ms > max { max = time_ms }
                         if time_ms < min { min = time_ms }
                         sum += time_ms as f64;
-                        array.push(time_ms);
+                        not_idle_array.push(time_ms);
                         total_icmp_echo += 1;
                     },
                     _ => { total_icmp_loss += 1; },
                 }
             }
-            if array.len() == 0 {
+            if not_idle_array.len() == 0 {
                 total_ip_loss += 1;
                 line.push("100%".to_string()); // loss
                 line.push("NaN".to_string());  // min
@@ -110,15 +111,19 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
                 line.push("NaN".to_string());  // max
                 line.push("NaN".to_string());  // stddev
             } else {
-                line.push(format!("{:.2}%", (1.0 - array.len() as f32 / v.len() as f32) * 100.0));
+                line.push(format!("{:.2}%", (1.0 - not_idle_array.len() as f32 / v.len() as f32) * 100.0));
                 line.push(format!("{:.2}", min));
-                let avg = sum / (array.len() as f64);
+                let avg = sum / (not_idle_array.len() as f64);
                 line.push(format!("{:.2}", avg));
+                if max > global_max_ms as f32 {
+                    global_max_ms = max;
+                }
+                global_avs_ms += avg;
                 line.push(format!("{:.2}", max));
-                let variance = array.iter().map(|value| {
+                let variance = not_idle_array.iter().map(|value| {
                     let diff = avg - (*value as f64);
                     diff * diff
-                }).sum::<f64>() / array.len() as f64;
+                }).sum::<f64>() / not_idle_array.len() as f64;
                 line.push(format!("{:.2}", variance.sqrt()));
             }
             for x in v.iter() {
@@ -148,16 +153,21 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
 
     help_table.add_row(Row::new(vec![
-        Cell::new("total_loss_ip/total_ip"),
+        Cell::new("loss ip/total ip"),
+        Cell::new("ping_loss_packets/all_ping_packets"),
         Cell::new("total_loss(%)"),
+        Cell::new("avg delay(exclude timeout packets)"),
+        Cell::new("max delay(exclude timeout packets)"),
         ]));
     help_table.add_row(Row::new(vec![
         Cell::new(format!("{}/{}", total_ip_loss, map.len()).as_str()),
+        Cell::new(format!("{}/{}", total_icmp_loss, total_icmp_echo + total_icmp_loss).as_str()),
         Cell::new(format!("{:.4}%", total_icmp_loss as f64 /
             (total_icmp_echo + total_icmp_loss) as f64 * 100.0).as_str()),
+        Cell::new(format!("{:.2}ms", global_max_ms).as_str()),
+        Cell::new(format!("{:.2}ms", global_avg_ms / map.len()).as_str()),
         ]));
     help_table.printstd();
-
     Ok(())
 
 }
