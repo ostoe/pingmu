@@ -45,20 +45,20 @@ fn main() {
     // pinger.add_ipaddr("1.1.1.1");
     // pinger.add_ipaddr("7.7.7.7");
     // pinger.add_ipaddr("2001:4860:4860::8888");
-    println!("add ips completed!");
+    println!("add ips num {} completed!", ips_vec.len());
     // let ping_times: u32 = 4;
     let save_csv_path = "/Users/fly/workspace/Rust/pingmu/fff.csv";
-    pinger.run_pinger(ping_times, interval);
+    pinger.run_pinger(ping_times, interval, is_log);
 
     // receive result segment
     let target_ips = pinger.get_target_count() as u64;
     let mut count = target_ips * ping_times as u64;
-    println!("ip address numbers: {}", count);
+    println!("ALL ip ping of times: {}", count);
     let mut epoch_reset_count: u64 = 0;
     let (tx, rx) = channel();
     ctrlc::set_handler(move || tx.send(()).expect("Could not send signal on channel."))
         .expect("Error setting Ctrl-C handler");
-    println!("Waiting for Ctrl-C...");
+    // println!("Waiting for Ctrl-C...");
 
     let mut ping_record_result: Vec<PingResult> = vec![];
     loop {
@@ -88,7 +88,7 @@ fn main() {
                 Ok(a) => {
                     println!("Exit by Ctrl+C");
                     // todo save ping result
-                    save::save_result(ping_record_result, filename);
+                    save::save_result(ping_record_result, filename, is_log);
                     break;
                 }
                 Err(e) => {
@@ -100,9 +100,8 @@ fn main() {
         if ping_times == 0 {
             continue;
         } else if count == 1 { // 因为是先判断，后-
-            println!("stop");
-            // todo save
-            save::save_result(ping_record_result, filename);
+            println!("Stopped");
+            save::save_result(ping_record_result, filename, is_log);
             break;
         } else {
             count -= 1;
@@ -115,12 +114,12 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     // Add a row per time
 
     let mut help_table = Table::new();
-    help_table.add_row(row![" ", " ",  "per ip number of times", "timeout(ms)", "send interval(us)",
-        "input.text", "filename", "is log(optional; default true)", "cidr or range or ip", "..."]);
+    help_table.add_row(row![" ", " ",  "per ip times", "TM(ms)", "send i(us)",
+        "input.text", "x.csv", "is log(op)", "cidr|range|ip", "..."]);
     // A more complicated way to add a row:
     help_table.add_row(Row::new(vec![
         Cell::new("sudo"),
-        Cell::new("pingmu"),
+        Cell::new("./pingmu"),
         Cell::new("4"),
         Cell::new("2000"),
         Cell::new("100"),
@@ -137,7 +136,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\nsudo ./pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -185,7 +184,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
     // check text
     if (&args[sub_v_flag]).contains(".text") || (&args[sub_v_flag]).starts_with("input") {
-        println!("detect input file");
+        // println!("detect input file");
         if let Ok(lines) = read_lines(args[sub_v_flag].to_string()) {
             // 使用迭代器，返回一个（可选）字符串
             for line in lines {
@@ -205,15 +204,16 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     if (&args[sub_v_flag]).ends_with(".csv") {
         // check_file(args[sub_v_flag])
         let x = check_file(&args[sub_v_flag].to_string());
-        println!("x{}", x);
+        println!("will out to {}", x);
         filename = Some(x);
         sub_v_flag += 1;
     }
 
     // check is DE log; default log print.
     let mut is_log = true;
-    if (&args[sub_v_flag]).ends_with("nolog") {
-        is_log = false
+    if (&args[sub_v_flag]).contains("nolog") {
+        is_log = false;
+        sub_v_flag += 1;
     }
 
     // check the last parameter correctly.
@@ -246,6 +246,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
     for i in sub_v_flag..args.len() {
         let ip_string = (&args[i]).trim();
+        // println!("{}", ip_string);
         if ip_string.contains("-") {
             ips_vec.append(&mut ip_range_to_list(ip_string));
         } else if ip_string.contains("/") {
@@ -265,7 +266,17 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
         }
     }
 
-    println!("{:?}", ips_vec);
+    if ips_vec.len() > 20 {
+        print!("[");
+        for x in 0..5{
+            print!("\"{}\", ", ips_vec[x])
+        }
+        print!("..., ");
+        for x in (ips_vec.len()-5)..ips_vec.len() {
+            print!("\"{}\", ",  ips_vec[x])
+        }
+        println!("{}{}]", (8u8 as char), (8u8 as char),);
+    } else { println!("{:?}", ips_vec); }
     return (times, timeout, interval, filename, ips_vec, is_log)
 }
 

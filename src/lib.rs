@@ -161,17 +161,17 @@ impl Pinger {
     }
 
     // run one round of pinging and stop
-    pub fn ping_once(&self, interval:u64) {
-        self.run_pings(Some(0), interval)
+    pub fn ping_once(&self, interval:u64, is_log: bool) {
+        self.run_pings(Some(0), interval, is_log)
     }
 
     // run the continuous pinger
-    pub fn run_pinger(&self, n: u32, interval:u64) {
-        self.run_pings(Some(n), interval)
+    pub fn run_pinger(&self, n: u32, interval:u64, is_log: bool) {
+        self.run_pings(Some(n), interval, is_log)
     }
 
     // run pinger either once or continuously
-    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64) {
+    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64, is_log: bool) {
         let thread_rx = self.thread_rx.clone();
         let tx = self.tx.clone();
         let txv6 = self.txv6.clone();
@@ -209,7 +209,8 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
-                            interval
+                            interval,
+                            is_log
                         );
                     }
                 });
@@ -227,7 +228,8 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
-                            interval
+                            interval,
+                            is_log
                         );
                     }
                 });
@@ -424,7 +426,7 @@ mod tests {
                 for target in test_addrs.iter() {
                     test_pinger.add_ipaddr(target);
                 }
-                test_pinger.ping_once();
+                test_pinger.ping_once(1, true);
                 for _ in test_addrs.iter() {
                     match test_channel.recv() {
                         Ok(result) => match result {

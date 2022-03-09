@@ -115,6 +115,7 @@ pub fn send_pings(
     targets: &Arc<Mutex<BTreeMap<IpAddr, Ping>>>,
     max_rtt: &Arc<Duration>,
     interval: u64,
+    is_log: bool,
 ) {
 // loop {
     targets.lock().unwrap().len();
@@ -137,7 +138,7 @@ pub fn send_pings(
         thread::sleep(Duration::from_micros(interval));
 
     }
-    println!("send elapsed: {:?}", start_time_0.elapsed());
+    if is_log {  println!("send elapsed: {:?}", start_time_0.elapsed()); }
     // thread::sleep(Duration::from_millis(2));
     // println!("sleep 2s to waiting echo.");
     {
@@ -205,7 +206,7 @@ pub fn send_pings(
     }
 
     let now: DateTime<Utc> = Utc::now();
-    println!("[{}]received completed", now.format("%H:%M:%S"));
+    if is_log {     println!("[{}]received completed", now.format("%H:%M:%S")); }
     // check for addresses which haven't replied
     for (addr, ping) in targets.lock().unwrap().iter() {
         if ping.seen == false {
@@ -221,7 +222,7 @@ pub fn send_pings(
         }
     }
     let now: DateTime<Utc> = Utc::now();
-    println!("[{}]check loss completed", now.format("%H:%M:%S"));
+    if is_log {    println!("[{}]check loss completed", now.format("%H:%M:%S")); }
     // check if we've received the stop signal
     if *stop.lock().unwrap() {
         return;
