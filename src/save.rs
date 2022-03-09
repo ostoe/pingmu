@@ -78,7 +78,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
     let mut total_icmp_loss = 0u64;
     let mut total_icmp_echo = 0u64;
     let mut global_max_ms: f32 = 0.0;
-    let mut global_avs_ms: f32 = 0.0;
+    let mut global_avg_ms: f64 = 0.0;
     if let Some(path) = filename {
         wtr = csv::Writer::from_path(path.as_str()).unwrap();
 
@@ -118,7 +118,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
                 if max > global_max_ms as f32 {
                     global_max_ms = max;
                 }
-                global_avs_ms += avg;
+                global_avg_ms += avg;
                 line.push(format!("{:.2}", max));
                 let variance = not_idle_array.iter().map(|value| {
                     let diff = avg - (*value as f64);
@@ -165,7 +165,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>) -> Result<(), i
         Cell::new(format!("{:.4}%", total_icmp_loss as f64 /
             (total_icmp_echo + total_icmp_loss) as f64 * 100.0).as_str()),
         Cell::new(format!("{:.2}ms", global_max_ms).as_str()),
-        Cell::new(format!("{:.2}ms", global_avg_ms / map.len()).as_str()),
+        Cell::new(format!("{:.2}ms", global_avg_ms / (map.len() as f 64)).as_str()),
         ]));
     help_table.printstd();
     Ok(())
