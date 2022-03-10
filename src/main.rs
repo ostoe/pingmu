@@ -274,15 +274,9 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
 
     if ips_vec.len() > 20 {
-        print!("[");
-        for x in 0..5{
-            print!("\"{}\", ", ips_vec[x])
-        }
-        print!("..., ");
-        for x in (ips_vec.len()-5)..ips_vec.len() {
-            print!("\"{}\", ",  ips_vec[x])
-        }
-        println!("{}{}]", (8u8 as char), (8u8 as char),);
+        println!("{:?}", [&ips_vec[..5], &[String::from("......")] ,&ips_vec[ips_vec.len()-5..]].concat());
+        // print!("..., ");
+        // println!("{:?}", &ips_vec[ips_vec.len()-5..])
     } else { println!("{:?}", ips_vec); }
     return (times, timeout, interval, filename, ips_vec, is_log)
 }
