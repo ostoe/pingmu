@@ -179,7 +179,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
             sub_v_flag += 1;
             a as u64
         },
-        _ => 100 // default timeout = 2000ms
+        _ => 100 // default interval 100us
     };
 
     // check text
@@ -211,6 +211,10 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
     // check is DE log; default log print.
     let mut is_log = true;
+    if sub_v_flag > (&args).len() -1 {
+
+    }
+
     if (&args[sub_v_flag]).contains("nolog") {
         is_log = false;
         sub_v_flag += 1;
@@ -223,6 +227,8 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
         println!("./pingmu -h / --help");
         std::process::exit(1);
     }
+
+
 
     // else {
     //     // === before
@@ -266,6 +272,7 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
         }
     }
 
+
     if ips_vec.len() > 20 {
         print!("[");
         for x in 0..5{
@@ -279,17 +286,6 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     } else { println!("{:?}", ips_vec); }
     return (times, timeout, interval, filename, ips_vec, is_log)
 }
-
-// fn parse_ipaddress(ipdes: &str) -> Vec<String> {
-//
-//     // let ip_string = "192.168.1.1-192.168.4.255";
-//     let ip_string = "21.239.50.1-21.239.50.2";
-//     // if ip_vec
-//
-//
-//
-//
-// }
 
 
 
