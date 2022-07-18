@@ -25,6 +25,7 @@ impl fmt::Display for Delay {
             Delay::Idle => write!(f, "idle"),
             Delay::DelayTime(d) => write!(f, "{:.2}ms", d.as_micros() as f64 / 1000.0)
         };
+
         Ok(())
     }
 }
