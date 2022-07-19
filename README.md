@@ -24,7 +24,7 @@ ip3
 the out.csv: 
 csv value example
 ```bash
-out.csv: value example
+out summary:
 +--------------+---------+---------+---------+---------+--------+---------+
 | ip           | loss(%) | min(ms) | avg(ms) | max(ms) | stddev | ...(ms) |
 +--------------+---------+---------+---------+---------+--------+---------+
