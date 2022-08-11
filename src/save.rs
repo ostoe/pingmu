@@ -87,7 +87,7 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>, is_log: bool) -
     } else {
         wtr = csv::Writer::from_path("/var/tmp/tmkggjfuftrdtfy547688.csv").unwrap();
     }
-    let map = map.sort_by_key(|a| a.0);
+    // let map = map.sort_by_key(|a| a.0);
     for (k, v) in map.iter() {
         let mut line:Vec<String> = vec![];
         // de log
