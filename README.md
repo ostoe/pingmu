@@ -1,16 +1,38 @@
 # pingmu
- ICMP ping library in Rust inspired by go-fastping and AnyEvent::FastPing Perl module
+可以直接ping多个网段的二进制工具包
 
+简单使用：第一个参数为ping的次数，然后可以添加任意个数的网段
+
+`sudo ./pingmu 4 192.168.1.1/24 10.1.3.1-10.1.3.240  ...`
+
+输出结果为：
+```txt
+192.168.1.1              [ 0.20ms, 0.14ms,]
+.
+.
+.
+192.168.1.10             [ 0.20ms, 0.14ms,]
+10.1.3.240               [ idle, idle,]
++------------------+-------------------------------+---------------+--------------------+--------------------+
+| loss ip/total ip | loss_packets/all_ping_packets | total_loss(%) | max delay(ex idle) | avg delay(ex idle) |
++------------------+-------------------------------+---------------+--------------------+--------------------+
+| 248/258          | 498/516                       | 96.5116%      | 199.54ms           | 2.81ms             |
++------------------+-------------------------------+---------------+--------------------+--------------------+
+
+```
+更多参数使用说明：
 `sudo ./pingmu -h`:
 ```bash
+example:
+ sudo ./pingmu 192.168.1.1/24 169.1254.169.254/32 ...
+ sudo ./pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1
+
 
 +------+----------+--------------+--------+------------+------------+---------+------------+----------------+---------------------------+
 |      |          | per ip times | TM(ms) | send i(us) | input.text | x.csv   | is log(op) | cidr|range|ip  | ...                       |
 +------+----------+--------------+--------+------------+------------+---------+------------+----------------+---------------------------+
 | sudo | ./pingmu | 4            | 2000   | 100        | input.text | out.csv | nolog      | 192.168.1.1/30 | 192.168.2.1-192.168.3.255 |
 +------+----------+--------------+--------+------------+------------+---------+------------+----------------+---------------------------+
-example:
-sudo ./pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1
 
 cat input.text
 ip1
@@ -42,8 +64,10 @@ rustup target add x86_64-unknown-linux-musl
 cargo build --release --target x86_64-unknown-linux-musl
 ```
 
+### 支持 linux/unix
+
 
 todo list:
- - fixed x.x.x.0 ip
- - analysis the result to pretty table.
- - ...
+ - fixed x.x.x.0 ip -> done!
+ - analysis the result to pretty table. -> done!
+ - replace pnet lib cause only root user can do...
