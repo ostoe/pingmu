@@ -47,7 +47,6 @@ fn main() {
     // pinger.add_ipaddr("2001:4860:4860::8888");
     println!("add ips num {} completed!", ips_vec.len());
     // let ping_times: u32 = 4;
-    let save_csv_path = "/Users/fly/workspace/Rust/pingmu/fff.csv";
     pinger.run_pinger(ping_times, interval, is_log);
 
     // receive result segment
@@ -88,7 +87,7 @@ fn main() {
                 Ok(a) => {
                     println!("Exit by Ctrl+C");
                     // todo save ping result
-                    save::save_result(ping_record_result, filename, is_log);
+                    save::save_result(ping_record_result, filename, is_log, ips_vec);
                     break;
                 }
                 Err(e) => {
@@ -98,10 +97,10 @@ fn main() {
             }
         }
         if ping_times == 0 {
-            continue;
+            continue; // loop ping no timeout
         } else if count == 1 { // 因为是先判断，后-
             println!("Stopped");
-            save::save_result(ping_record_result, filename, is_log);
+            save::save_result(ping_record_result, filename, is_log, ips_vec);
             break;
         } else {
             count -= 1;
@@ -136,7 +135,8 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\nsudo ./pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\n sudo ./pingmu 4 192.168.1.1/24 \n
+        sudo ./pingmu 4 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -211,22 +211,18 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
     // check is DE log; default log print.
     let mut is_log = true;
-    if sub_v_flag > (&args).len() -1 {
-
-    }
-
-    if (&args[sub_v_flag]).contains("nolog") {
+    if sub_v_flag < (&args).len() && (&args[sub_v_flag]).contains("nolog") {
         is_log = false;
         sub_v_flag += 1;
     }
 
     // check the last parameter correctly.
-    else if  (&args[sub_v_flag]).contains(".") {
-
-    } else {
-        println!("./pingmu -h / --help");
-        std::process::exit(1);
-    }
+    // else if  (&args[sub_v_flag]).contains(".") {
+    //
+    // } else {
+    //     println!("./pingmu -h / --help");
+    //     std::process::exit(1);
+    // }
 
 
 
@@ -273,7 +269,10 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     }
 
 
-    if ips_vec.len() > 20 {
+    if ips_vec.len() == 0 {
+        println!("no ip input");
+        std::process::exit(0);
+    } else if ips_vec.len() > 20 {
         println!("{:?}", [&ips_vec[..5], &[String::from("......")] ,&ips_vec[ips_vec.len()-5..]].concat());
         // print!("..., ");
         // println!("{:?}", &ips_vec[ips_vec.len()-5..])
@@ -293,17 +292,20 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
     // println!("{}", ip1_string);
     let ip2_string = ip_str_to_hex(ip2);
     // println!("{}", ip2_string);
+    // 转为十进制表示
     let ip1_int = u64::from_str_radix( ip1_string.as_str(), 16).unwrap();
     let ip2_int = u64::from_str_radix(ip2_string.as_str(), 16).unwrap();
     // println!("{} {}", ip1_int, ip2_int);
     // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
     let mut ip_vec: Vec<String> = vec![];
     for ip in ip1_int..=ip2_int {
+        // 再转为16进制 ｜ to hex
         let ip_str = format!("{:0>8x}", ip);
         // println!("{}", ip_str);
         // println!("{}-{}-{}-{}", &ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]);
         let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
         let ip_u8_arr = ip_str_arr.map(move |a| {
+            // 两位 hex 转为 十进制表示
             u8::from_str_radix(a, 16).unwrap().to_string()
         });
         ip_vec.push(ip_u8_arr.join("."));
@@ -314,6 +316,7 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
 
 
 
+// "192.168.1.64"  -> "c0a80140"
 fn ip_str_to_hex(s: &str) -> String {
     let ip1_vec: Vec<&str> = s.split(".").collect();
     let ip1_arr: [&str;4] = ip1_vec.try_into().unwrap();

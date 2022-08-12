@@ -50,9 +50,9 @@ impl fmt::Display for PingRecord {
     }
 }
 
-pub fn save_result(v: Vec<PingResult>, filename: Option<String>, is_log: bool) -> Result<(), io::Error > {
+pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, is_log: bool, ips_vec: Vec<String>) -> Result<(), io::Error > {
     let mut map : HashMap<String, Vec<Delay>> = HashMap::new();
-    for x in v.iter() {
+    for x in ping_result_vec.iter() {
         match x {
             PingResult::Idle{ addr} => {
                 match map.get_mut(&*addr.to_string()) {
@@ -88,7 +88,8 @@ pub fn save_result(v: Vec<PingResult>, filename: Option<String>, is_log: bool) -
         wtr = csv::Writer::from_path("/var/tmp/tmkggjfuftrdtfy547688.csv").unwrap();
     }
     // let map = map.sort_by_key(|a| a.0);
-    for (k, v) in map.iter() {
+    for k in ips_vec.iter() {
+        let v = map.get(k).unwrap();
         let mut line:Vec<String> = vec![];
         // de log
         if is_log { print!("{:width$}[", k, width=26); }

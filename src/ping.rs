@@ -11,7 +11,6 @@ use std::net::IpAddr;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
-use std::borrow::Borrow;
 use std::thread;
 use crate::PingResult;
 use chrono::{DateTime, Utc};
