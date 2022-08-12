@@ -135,8 +135,8 @@ fn detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips");
         help_table.printstd();
-        println!("example:\n sudo ./pingmu 4 192.168.1.1/24 \n
-        sudo ./pingmu 4 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\n {} \n {}",  "sudo ./pingmu 4 192.168.1.1/24 192.168.1.2/31",
+        "sudo ./pingmu 4 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
