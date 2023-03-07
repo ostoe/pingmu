@@ -2,12 +2,13 @@ use std::{fmt, io};
 use std::time::Duration;
 use crate::PingResult;
 use std::collections::HashMap;
-use crate::save::Delay::{Idle, DelayTime};
+use crate::save::Delay::{DelayTime};
 use std::fs::File;
 use csv;
-use std::io::Error;
 use csv::Writer;
 // use std::path::Path;
+#[allow(unused_imports)]
+use log::{log, error, info, warn, debug};
 
 pub struct PingRecord {
     pub ipaddress: String,
@@ -22,18 +23,16 @@ pub enum Delay {
 impl fmt::Display for Delay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Delay::Idle => write!(f, "idle"),
+            Delay::Idle => write!(f, "TMOut"),
             Delay::DelayTime(d) => write!(f, "{:.2}ms", d.as_micros() as f64 / 1000.0)
-        };
-
-        Ok(())
+        }
     }
 }
 
 impl Delay {
     fn to_csv(&self) -> String {
         match self {
-            Delay::Idle => format!("idle").to_string(),
+            Delay::Idle => format!("TMOut").to_string(),
             Delay::DelayTime(d) => format!("{:.2}", d.as_micros() as f64 / 1000.0).to_string(),
         }
     }
@@ -41,16 +40,16 @@ impl Delay {
 
 impl fmt::Display for PingRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\t  [", self.ipaddress);
+        write!(f, "{}\t  [", self.ipaddress)?;
         for x in self.delay.iter() {
-            write!(f, " {},", x);
+            write!(f, " {},", x)?;
         }
-        write!(f, "]\n", );
+        write!(f, "]\n", )?;
         Ok(())
     }
 }
 
-pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, is_log: bool, ips_vec: Vec<String>) -> Result<(), io::Error > {
+pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, is_log: bool, ips_vec: &Vec<String>) -> Result<(), io::Error > {
     let mut map : HashMap<String, Vec<Delay>> = HashMap::new();
     for x in ping_result_vec.iter() {
         match x {
@@ -58,12 +57,12 @@ pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, i
                 match map.get_mut(&*addr.to_string()) {
                     Some(ipv) => ipv.push(Delay::Idle),
                     _ => {
-                        let mut v1 = vec![Delay::Idle];
+                        let v1 = vec![Delay::Idle];
                         map.insert(addr.to_string(), v1);
                     }
                 }
             },
-            PingResult::Receive{ addr, rtt, recv_duration} => {
+            PingResult::Receive{ addr, rtt: _rtt, recv_duration} => {
                 match map.get_mut(&*addr.to_string()) {
                     Some(ipv) => ipv.push(DelayTime(*recv_duration)),
                     _ => {
@@ -167,8 +166,8 @@ pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, i
         Cell::new("loss ip/total ip"),
         Cell::new("loss_packets/all_ping_packets"),
         Cell::new("total_loss(%)"),
-        Cell::new("max delay(ex idle)"),
-        Cell::new("avg delay(ex idle)"),
+        Cell::new("max delay(ex TMOut)"),
+        Cell::new("avg delay(ex TMOut)"),
         ]));
     help_table.add_row(Row::new(vec![
         Cell::new(format!("{}/{}", total_ip_loss, map.len()).as_str()),
@@ -188,19 +187,29 @@ pub fn save_result(ping_result_vec: Vec<PingResult>, filename: Option<String>, i
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
+    // #[test]
+    // fn test_ping() {
+    //     let m = PingRecord {
+    //         ipaddress: "192.168.1.1".to_string(),
+    //         delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
+    //     };
+    //     println!("{}", m);
+    //     assert_eq!(p.get_sequence_number(), 0);
+    //     assert!(p.get_identifier() > 0);
+
+    //     p.increment_sequence_number();
+    //     assert_eq!(p.get_sequence_number(), 1);
+    // }
     #[test]
-    fn test_ping() {
-        let m = PingRecord {
-            ipaddress: "192.168.1.1".to_string(),
-            delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
-        };
-        println!("{}", m);
-        assert_eq!(p.get_sequence_number(), 0);
-        assert!(p.get_identifier() > 0);
-
-        p.increment_sequence_number();
-        assert_eq!(p.get_sequence_number(), 1);
+    fn test_str() {
+        let a111 = "fsfsf.csvsa.csv";
+        if a111.ends_with(".csv") {
+            let r1 = a111.rsplit_once(".csv").unwrap();
+            println!("---{:}  {:}", r1.0, r1.1);
+        }
+        let a = a111.split(".csv").collect::<Vec<&str>>();
+        println!("{:?}", a);
     }
 }

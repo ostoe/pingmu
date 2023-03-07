@@ -1,8 +1,5 @@
-extern crate pnet;
-extern crate pnet_macros_support;
-#[macro_use]
-extern crate log;
-extern crate rand;
+#[allow(unused_imports)]
+use log::{log, error, info, warn, debug};
 
 mod ping;
 pub mod save;
@@ -161,17 +158,17 @@ impl Pinger {
     }
 
     // run one round of pinging and stop
-    pub fn ping_once(&self, interval:u64, is_log: bool) {
-        self.run_pings(Some(0), interval, is_log)
+    pub fn ping_once(&self, interval:u64, ) {
+        self.run_pings(Some(0), interval, )
     }
 
     // run the continuous pinger
-    pub fn run_pinger(&self, n: u32, interval:u64, is_log: bool) {
-        self.run_pings(Some(n), interval, is_log)
+    pub fn run_pinger(&self, n: u32, interval:u64,) {
+        self.run_pings(Some(n), interval,)
     }
 
     // run pinger either once or continuously
-    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64, is_log: bool) {
+    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64, ) {
         let thread_rx = self.thread_rx.clone();
         let tx = self.tx.clone();
         let txv6 = self.txv6.clone();
@@ -209,8 +206,8 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
-                            interval,
-                            is_log
+                            interval
+                            
                         );
                     }
                 });
@@ -228,8 +225,8 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
-                            interval,
-                            is_log
+                            interval
+                            
                         );
                     }
                 });
@@ -366,7 +363,7 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Test failed: {}", e);
+                error!("Test failed: {}", e);
                 assert!(false)
             }
         };
@@ -396,7 +393,7 @@ mod tests {
                 );
             }
             Err(e) => {
-                println!("Test failed: {}", e);
+                error!("Test failed: {}", e);
                 assert!(false)
             }
         }
@@ -411,7 +408,7 @@ mod tests {
                 assert_eq!(*test_pinger.stop.lock().unwrap(), true);
             }
             Err(e) => {
-                println!("Test failed: {}", e);
+                error!("Test failed: {}", e);
                 assert!(false)
             }
         }
@@ -426,7 +423,7 @@ mod tests {
                 for target in test_addrs.iter() {
                     test_pinger.add_ipaddr(target);
                 }
-                test_pinger.ping_once(1, true);
+                test_pinger.ping_once(1);
                 for _ in test_addrs.iter() {
                     match test_channel.recv() {
                         Ok(result) => match result {
@@ -442,16 +439,13 @@ mod tests {
                                     assert!(false)
                                 }
                             }
-                            _ => {
-                                assert!(false)
-                            }
                         },
                         Err(_) => assert!(false),
                     }
                 }
             }
             Err(e) => {
-                println!("Test failed: {}", e);
+                error!("Test failed: {}", e);
                 assert!(false)
             }
         }

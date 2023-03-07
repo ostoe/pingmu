@@ -1,3 +1,4 @@
+use log::trace;
 use pnet::packet::icmp::echo_request;
 use pnet::packet::icmp::IcmpTypes;
 use pnet::packet::icmpv6::{Icmpv6Types, MutableIcmpv6Packet};
@@ -14,6 +15,8 @@ use std::time::{Duration, Instant};
 use std::thread;
 use crate::PingResult;
 use chrono::{DateTime, Utc};
+#[allow(unused_imports)]
+use log::{log, error, info, warn, debug};
 
 pub struct Ping {
     addr: IpAddr,
@@ -114,10 +117,9 @@ pub fn send_pings(
     targets: &Arc<Mutex<BTreeMap<IpAddr, Ping>>>,
     max_rtt: &Arc<Duration>,
     interval: u64,
-    is_log: bool,
+    // is_log: bool,
 ) {
 // loop {
-    targets.lock().unwrap().len();
     let start_time_0 = Instant::now();
     for (addr, ping) in targets.lock().unwrap().iter_mut() {
 
@@ -137,9 +139,9 @@ pub fn send_pings(
         thread::sleep(Duration::from_micros(interval));
 
     }
-    if is_log {  println!("send elapsed: {:?}", start_time_0.elapsed()); }
+    debug!("send elapsed: {:?}", start_time_0.elapsed());
+    // if is_log {  println!("send elapsed: {:?}", start_time_0.elapsed()); }
     // thread::sleep(Duration::from_millis(2));
-    // println!("sleep 2s to waiting echo.");
     {
         // start the timer
         let mut timer = timer.write().unwrap();
@@ -190,14 +192,13 @@ pub fn send_pings(
                             }
                         }
                     }
-                    _ => {}
                 }
             }
             Err(_) => {
                 // Check we haven't exceeded the max rtt
                 let start_time = timer.read().unwrap();
                 if Instant::now().duration_since(*start_time) > **max_rtt {
-                    info!("exceeded the max rtt...");
+                    trace!("exceeded the max rtt...");
                     break;
                 }
             }
@@ -205,7 +206,8 @@ pub fn send_pings(
     }
 
     let now: DateTime<Utc> = Utc::now();
-    if is_log {     println!("[{}]received completed", now.format("%H:%M:%S")); }
+    trace!("[{}]received completed", now.format("%H:%M:%S"));
+    // if is_log {     }
     // check for addresses which haven't replied
     for (addr, ping) in targets.lock().unwrap().iter() {
         if ping.seen == false {
@@ -221,7 +223,8 @@ pub fn send_pings(
         }
     }
     let now: DateTime<Utc> = Utc::now();
-    if is_log {    println!("[{}]check loss completed", now.format("%H:%M:%S")); }
+    trace!("[{}]check loss completed", now.format("%H:%M:%S"));
+    // if is_log {    }
     // check if we've received the stop signal
     if *stop.lock().unwrap() {
         return;
