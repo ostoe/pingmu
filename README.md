@@ -3,7 +3,7 @@
 
 简单使用：第一个参数为ping的次数，然后可以添加任意个数的网段
 
-`sudo ./pingmu 4 192.168.1.1/24 10.1.3.1-10.1.3.240  ...`
+`sudo ./pingmu -c 4 192.168.1.1/24 10.1.3.1-10.1.3.240  ...`
 
 输出结果为：
 ```txt
@@ -25,7 +25,8 @@
 ```bash
 example:
  sudo ./pingmu 192.168.1.1/24 169.1254.169.254/32 ...
- sudo ./pingmu 10 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1
+ sudo ./pingmu -c 10 -t 2000 -i 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1
+
 
 
 +------+----------+--------------+--------+------------+------------+---------+------------+----------------+---------------------------+
@@ -40,6 +41,32 @@ ip2
 ip3
 ....
 
+```
+
+### help
+```bash
+sudo ./pingmu 
+Usage: pingmu [OPTIONS] [cidr|range]...
+
+Arguments:
+  [cidr|range]...  <cidr | range> (s)  ex.  10.0.0.0/24 1.1.1.1-1.1.1.5
+
+Options:
+  -c, --count <count>              The number of icmp echo packges `ping`; [default: 3]
+  -t, --timeout <timeout>          The Timeout for each icmp echo packge (/ms) [default: 1000]
+  -i, --interval <interval>        The interval between sending every two packets (/ns) [default: 100]
+  -l, --loglevel <loglevel>        Which log level to run [default: info] [possible values: off, error, warn, info, debug, trace]
+      --input <ip list file path>  ip list input file like this: cat ips.txt: 192.168.1.2 \n 1.1.1.1 \n...   not support cidr or range
+  -o, --outputpath <output path>   output each ping result to csv file. eg. output-xxxx.csv
+  -h, --help                       Print help (see more with '--help')
+  -V, --version                    Print version
+
+eg. sudo ./pingmu  1.2.2.3/24 1.2.3.4-1.2.3.9
+    sudo ./pingmu -c 1 1.2.3.4/30
+    sudo ./pingmu -c 4 -input ips.txt -o output.csv 1.2.3.4/30
+
+tips: 1. Need sudo.
+      2. You can press ctrl+c anytime to stopped the program.
 ```
 
 
