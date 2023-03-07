@@ -214,7 +214,9 @@ fn main() {
             let ips =
                 ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
             for x in ips.iter() {
-                ips_vec.push(x.to_string());
+                if !x.to_string().ends_with(".0") {
+                    ips_vec.push(x.to_string());
+                }
             }
         } else if ip_string.contains(".") {
             let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
@@ -511,6 +513,10 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
     // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
     let mut ip_vec: Vec<String> = vec![];
     for ip in ip1_int..=ip2_int {
+        // trace!("ip: {}", ip);
+        if ip%256 == 0 {
+            continue;
+        }
         // 再转为16进制 ｜ to hex
         let ip_str = format!("{:0>8x}", ip);
         trace!(
@@ -531,12 +537,15 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
 }
 
 // "192.168.1.64"  -> "c0a80140"
-fn ip_str_to_hex(s: &str) -> String {
+fn ip_str_to_hex<'a>(s: &'a str) -> String {
+    // let ip1_arr : &[&str] = s.split(".").collect();
     let ip1_vec: Vec<&str> = s.split(".").collect();
-    let ip1_arr: [&str; 4] = ip1_vec.try_into().unwrap();
-    let ip1_str_arr = ip1_arr.map(move |a| format!("{:0>2x}", a.parse::<u8>().unwrap()));
-
+    let ip1_str_arr: Vec<String> = ip1_vec.into_iter().map(|a| format!("{:0>2x}", a.parse::<u8>().unwrap() ))
+        .collect();
+    // let ip1_arr: [&str; 4] = ip1_vec.try_into().unwrap();
+    // let ip1_str_arr = ip1_arr.map(move |a| format!("{:0>2x}", a.parse::<u8>().unwrap()));
     ip1_str_arr.join("")
+    // ip1_str_arr.join("")
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
