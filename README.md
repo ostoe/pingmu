@@ -99,3 +99,4 @@ todo list:
  - analysis the result to pretty table. -> done!
  - replace pnet lib cause only root user can do...
  - tcp ping
+ - support ipv6

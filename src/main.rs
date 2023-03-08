@@ -16,7 +16,7 @@ use pingmu::save;
 use pingmu::PingResult::{Idle, Receive};
 use pingmu::{ PingResult, Pinger};
 use std::collections::HashMap;
-use std::convert::TryInto;
+// use std::convert::TryInto;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::net::Ipv4Addr;
@@ -26,13 +26,14 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use std::path::PathBuf;
+use std::vec;
 // use std::vec;
 use clap::{CommandFactory};
 
 use clap::{ Parser, Subcommand, ValueEnum};
 
 const HELP_AND_LIMITED: &str = 
-"eg. sudo ./pingmu  1.2.2.3/24 1.2.3.4-1.2.3.9
+"eg. sudo ./pingmu  1.2.2.3/24 1.2.3.4-128 1.1.1.1-1.1.2.1
     sudo ./pingmu -c 1 1.2.3.4/30
     sudo ./pingmu -c 4 -input ips.txt -o output.csv 1.2.3.4/30\n
 tips: 1. Need sudo.
@@ -63,7 +64,7 @@ struct Cli {
 
     /// ip list input file like this:
     /// cat ips.txt:
-    /// 192.168.1.2 \n 1.1.1.1 \n...   not support cidr or range
+    /// 192.168.1.2 10.1.1.1/24 ... support cidr or range
     #[arg(long, value_name = "ip list file path")]
     input: Option<PathBuf>,
 
@@ -185,10 +186,10 @@ fn main() {
                 // 使用迭代器，返回一个（可选）字符串
                 for line in lines {
                     if let Ok(ip) = line {
-                        let ip = ip.trim().to_string();
-                        let ip = Ipv4Addr::from_str(&ip)
-                            .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
-                        ips_vec.push(ip.to_string());
+                        ips_vec .append( &mut parse_str_cidr_or_range_to_ip_list(&ip) );
+                        // let ip = Ipv4Addr::from_str(&ip)
+                        //     .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
+                        // ips_vec.push(ip.to_string());
                     }
                 }
             }
@@ -207,23 +208,7 @@ fn main() {
 
     for cidr in &cli.cidr {
         let ip_string = (cidr).trim();
-        // println!("{}", ip_string);
-        if ip_string.contains("-") {
-            ips_vec.append(&mut ip_range_to_list(ip_string));
-        } else if ip_string.contains("/") {
-            let ips =
-                ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
-            for x in ips.iter() {
-                if !x.to_string().ends_with(".0") {
-                    ips_vec.push(x.to_string());
-                }
-            }
-        } else if ip_string.contains(".") {
-            let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
-            ips_vec.push(ip.to_string());
-        } else {
-            panic!("error input.")
-        }
+        ips_vec .append( &mut parse_str_cidr_or_range_to_ip_list(ip_string) );
     }
 
     if ips_vec.len() == 0 {
@@ -496,47 +481,129 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     return (times, timeout, interval, filename, ips_vec, is_log);
 }
 
-fn ip_range_to_list(ip_range: &str) -> Vec<String> {
-    // let ip_range =
-    let x: Vec<&str> = ip_range.split("-").collect();
-    trace!("split: {:?}", x);
-    let ip1 = x[0];
-    let ip2 = x[1];
-    let ip1_string = ip_str_to_hex(ip1);
-    trace!("ip_A to hex: {}", ip1_string);
-    let ip2_string = ip_str_to_hex(ip2);
-    trace!("ip_B to hex: {}", ip2_string);
-    // 转为十进制表示
-    let ip1_int = u64::from_str_radix(ip1_string.as_str(), 16).unwrap();
-    let ip2_int = u64::from_str_radix(ip2_string.as_str(), 16).unwrap();
-    trace!("ip_A_B: {} {}", ip1_int, ip2_int);
-    // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
-    let mut ip_vec: Vec<String> = vec![];
-    for ip in ip1_int..=ip2_int {
-        // trace!("ip: {}", ip);
-        if ip%256 == 0 {
-            continue;
+/// 解析cidr or ip范围为地址列表，cidr自动跳过网络位和广播位
+/// eg： ("192.168.1.0/30") -> ["192.168.1.1", "192.168.1.2"]
+/// eg： ("192.168.1.1-2") -> ["192.168.1.1", "192.168.1.2"]
+/// eg： ("192.168.1.1-192.168.1.2") -> ["192.168.1.1", "192.168.1.2"]
+fn parse_str_cidr_or_range_to_ip_list(ip_input: &str) -> Vec<String> {
+    let mut ips_vec = vec![];
+    let ip_string = (ip_input).trim();
+        // println!("{}", ip_string);
+        if ip_string.contains("-") {
+            ips_vec.append(&mut ip_range_to_list(ip_string));
+        } else if ip_string.contains("/") {
+            let ips =
+                ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
+            let mut ips_iter = ips.iter();
+            ips_iter.next(); // pop network addr. 去除网络地址
+            
+            debug!("{}--{} {:?} {:?}", ips.prefix(), ips.network(), ips.broadcast(), ips.size());
+            for x in ips_iter {
+                // if !x.to_string().ends_with(".0") {
+                    ips_vec.push(x.to_string());
+                // }
+            }
+            match ips.size() {
+                ipnetwork::NetworkSize::V4(num) => 
+                    if num > 1 {ips_vec.pop();}, // pop broadcast
+                ipnetwork::NetworkSize::V6(_) => {},
+            }
+        } else if ip_string.contains(".") {
+            let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
+            ips_vec.push(ip.to_string());
+        } else {
+            info!("error input, skiped: {}", ip_input);
         }
-        // 再转为16进制 ｜ to hex
-        let ip_str = format!("{:0>8x}", ip);
-        trace!(
-            "to hex format --> {}-{}-{}-{}",
-            &ip_str[0..2],
-            &ip_str[2..4],
-            &ip_str[4..6],
-            &ip_str[6..8]
-        );
-        let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
-        let ip_u8_arr = ip_str_arr.map(move |a| {
-            // 两位 hex 转为 十进制表示
-            u8::from_str_radix(a, 16).unwrap().to_string()
-        });
-        ip_vec.push(ip_u8_arr.join("."));
+        ips_vec
+}
+
+
+/// parse ipaddr range to vec<String>
+fn ip_range_to_list(ip_range: &str) -> Vec<String> {
+    let (ip_from, ip_to) = ip_range.split_once("-").expect("input error");
+    let ip_from_arr: [&str; 4] = ip_from.splitn(4, ".").collect::<Vec<&str>>().try_into().expect("input ip error");
+    if ip_from_arr.len() != 4 {panic!("error input")}
+    let ip_to_vec: Vec<&str> = ip_to.splitn(4, ".").collect();
+    let mut ip_to_arr: [&str; 4] = [""; 4];
+    let concat_index = ip_from_arr.len() - ip_to_vec.len();
+    for x in 0..4 {
+        ip_to_arr[x] = if x < concat_index {
+            ip_from_arr[x]
+        } else {
+            ip_to_vec[x-concat_index]
+        }
     }
+    let ip_from_arr = ip_from_arr.map(|a| a.parse::<u8>().unwrap());
+    let ip_to_arr = ip_to_arr.map(|a| a.parse::<u8>().unwrap());
+
+    let mut ip_from_big_int = 0u32;
+    let mut ip_to_big_int = 0u32;
+    // [192, 168, 2, 2] >>> 3232236034
+    for x in 0..4 {
+        ip_from_big_int <<= 8;
+        ip_from_big_int += ip_from_arr[x] as u32;
+        ip_to_big_int <<= 8;
+        ip_to_big_int += ip_to_arr[x] as u32;
+    }
+
+    trace!("ip-range_to-list: {:?} {:?} {} {} ",ip_from_arr, ip_to_arr, ip_from_big_int, ip_to_big_int);
+
+
+    let mut ip_vec: Vec<String> = vec![];
+    for mut ip_big_int in ip_from_big_int..=ip_to_big_int {
+        let mut ip_u8_arr = [0u8; 4];
+        for x in 0..4 {
+             let ip_shift_int = ip_big_int >> ((3-x)*8); // 3232236034 >> 24 == 192
+            //  ip_str[x] = &ip_u8_int.to_string();
+            ip_big_int -= ip_shift_int << ((3-x)*8);  // 减去从左侧起第一个8位的数
+            ip_u8_arr[x] = ip_shift_int as u8;
+        }
+        // trace!("ip_u8_arr: {:?}", ip_u8_arr);
+        let ip_str = ip_u8_arr.map(|a| a.to_string()).join(".");
+        ip_vec.push(ip_str);
+    }
+
+
+    // let x: Vec<&str> = ip_range.split("-").collect();
+    // trace!("split: {:?}", x);
+    // let ip1 = x[0];
+    // let ip2 = x[1];
+    // let ip1_string = ip_str_to_hex(ip1);
+    // trace!("ip_A to hex: {}", ip1_string);
+    // let ip2_string = ip_str_to_hex(ip2);
+    // trace!("ip_B to hex: {}", ip2_string);
+    // // 转为十进制表示
+    // let ip1_int = u64::from_str_radix(ip1_string.as_str(), 16).unwrap();
+    // let ip2_int = u64::from_str_radix(ip2_string.as_str(), 16).unwrap();
+    // trace!("ip_A_B: {} {}", ip1_int, ip2_int);
+    // // let ip2_int = ip_str_to_hex(ip2).parse::<u64>().unwrap();
+    // let mut ip_vec: Vec<String> = vec![];
+    // for ip in ip1_int..=ip2_int {
+    //     // trace!("ip: {}", ip);
+    //     // if ip%256 == 0 {
+    //     //     continue;
+    //     // }
+    //     // 再转为16进制 ｜ to hex
+    //     let ip_str = format!("{:0>8x}", ip);
+    //     trace!(
+    //         "to hex format --> {}-{}-{}-{}",
+    //         &ip_str[0..2],
+    //         &ip_str[2..4],
+    //         &ip_str[4..6],
+    //         &ip_str[6..8]
+    //     );
+    //     let ip_str_arr = [&ip_str[0..2], &ip_str[2..4], &ip_str[4..6], &ip_str[6..8]];
+    //     let ip_u8_arr = ip_str_arr.map(move |a| {
+    //         // 两位 hex 转为 十进制表示
+    //         u8::from_str_radix(a, 16).unwrap().to_string()
+    //     });
+    //     ip_vec.push(ip_u8_arr.join("."));
+    // }
     ip_vec
 }
 
-// "192.168.1.64"  -> "c0a80140"
+/// parse ipaddr to hex:
+/// "192.168.1.64"  -> "c0a80140"
 fn ip_str_to_hex<'a>(s: &'a str) -> String {
     // let ip1_arr : &[&str] = s.split(".").collect();
     let ip1_vec: Vec<&str> = s.split(".").collect();
@@ -579,4 +646,19 @@ fn check_file(path: &str) -> String {
     }
     return out_path;
     // let file =  std::fs::try_exists(path);
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_a() {
+        let a: Vec<&str> = "11.2.1.1".splitn(4, ".").collect();
+        let ip_to_arr: [&str; 4] = a.try_into().unwrap();
+        println!("{:?}", ip_to_arr);
+        let arr: [&str;4] = [""; 4];
+        println!("{:?}", arr);
+
+    }
 }
