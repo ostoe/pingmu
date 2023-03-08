@@ -80,7 +80,7 @@ struct Cli {
     // mode: Option<Mode>,
 
     // Range: Vec<String>,
-    /// <cidr | range> (s)  ex.  10.0.0.0/24 1.1.1.1-1.1.1.5
+    /// <cidr | range> (s)  ex.  10.0.0.0/24 1.1.1.1-2.5
     #[arg(value_name = "cidr|range")]
     cidr: Vec<String>,
 }
