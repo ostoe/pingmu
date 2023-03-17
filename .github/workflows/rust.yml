@@ -1,9 +1,8 @@
 # .github/workflows/rust.yml
 name: Release
-
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build:
