@@ -1,23 +1,26 @@
-name: Release
+# .github/workflows/build.yml
+name: Build
+
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
+    branches: [main]
+
 jobs:
-  release:
-    name: Release - ${{ matrix.platform.target }}
-    strategy:
-      fail-fast: false
-      matrix: 
-        target: [x86_64-unknown-gnu, x86_64-unknown-musl]
-        os: [ubuntu-latest, ]
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Build
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@master
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.3
         with:
-          toolchain: stable
-          target:   ${{ matrix.target }}
-          override: true
-      #- run: cargo build --release
+          RUSTTARGET: x86_64-unknown-linux-musl
+          UPLOAD_MODE: none
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
