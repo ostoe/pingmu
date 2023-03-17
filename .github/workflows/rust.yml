@@ -1,0 +1,34 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.release_for }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - release_for: FreeBSD-x86_64
+            os: centos-7.9
+            target: x86_64-unknown-freebsd
+            bin: precious
+            name: precious-FreeBSD-x86_64.tar.gz
+          - release_for: macOS-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: precious
+            name: precious-Darwin-x86_64.tar.gz
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
