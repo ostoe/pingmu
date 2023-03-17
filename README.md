@@ -71,6 +71,8 @@ tips: 1. Need sudo.
 
 
 the out.csv: 
+ip_addr,loss,min,avg,max,stddev,0.1ms,0.2ms,xxms,xxms,xxms
+
 csv value example
 ```bash
 out summary:
