@@ -1,5 +1,5 @@
 # .github/workflows/rust.yml
-name: Release
+name: rust-Release-test
 on:
   push:
     branches: [master]
