@@ -41,7 +41,9 @@ jobs:
   create-release:
     name: "Create release"
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    needs: "get-tag"
+    needs: 
+      - "get-tag"
+      - "get-bin-name"
     runs-on: "ubuntu-latest"
     steps:
       - name: "Check out the repo"
