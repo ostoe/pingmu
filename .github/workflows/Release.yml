@@ -26,6 +26,17 @@ jobs:
         shell: "bash"
         run: |
           echo PKG_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/["]/, "", $2); printf("%s",$2) }' Cargo.toml) >> $GITHUB_OUTPUT
+  get-bin-name:
+    name: "Get Bin Name  Package Version"
+    runs-on: "ubuntu-latest"
+    outputs:
+      bin-name: ${{ steps.bin-name.outputs.BIN_NAME }} 
+    steps:
+      - name: "Get bin name"
+        id: "bin-name"
+        shell: "bash"
+        run: |
+          echo BIN_NAME=$(awk -F ' = ' '$1 ~ /name/ { gsub(/["]/, "", $2); printf("%s",$2) }' Cargo.toml) >> $GITHUB_OUTPUT
 
   create-release:
     name: "Create release"
@@ -66,7 +77,7 @@ jobs:
       - name: "Upload Binaries"
         uses: "taiki-e/upload-rust-binary-action@v1"
         with:
-          bin: "shazam"
+          bin: ${{ steps.bin-name.outputs.BIN_NAME }} 
           target: ${{ matrix.target }}
           archive: $bin-${{ matrix.target }}
           ref: refs/tags/v${{ needs.get-tag.outputs.pkg-version }}
@@ -93,12 +104,12 @@ jobs:
   #       id: "meta"
   #       uses: "docker/metadata-action@v4"
   #       with:
-  #         images: "bwks/shazam"
+  #         images: "bwks/pingmu"
       
   #     - name: "Build and push Docker image"
   #       uses: "docker/build-push-action@v3"
   #       with:
   #         context: .
   #         push: true
-  #         tags: bwks/shazam:latest,bwks/shazam:v${{ needs.get-tag.outputs.pkg-version }}
+  #         tags: bwks/pingmu:latest,bwks/pingmu:v${{ needs.get-tag.outputs.pkg-version }}
   #         labels: ${{ steps.meta.outputs.labels }}
