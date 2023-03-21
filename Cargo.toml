@@ -29,4 +29,3 @@ clap = {version = "4.1.8", features = ["derive"] }
 
 #
 #[[example]]
-#name = "ping"
