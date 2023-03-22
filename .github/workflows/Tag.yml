@@ -24,4 +24,9 @@ jobs:
       - name: "Set Tag"
         shell: "bash"
         run: |
-          git tag v${{ steps.get-tag.outputs.PKG_VERSION }} && git push --tags
+          result=`git ls-remote --tags | v${{ steps.get-tag.outputs.PKG_VERSION }}`
+          if [[ $result != "" ]];then 
+            echo "已有标签"
+          else
+            git tag v${{ steps.get-tag.outputs.PKG_VERSION }} && git push --tags
+          fi
