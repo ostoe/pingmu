@@ -26,10 +26,11 @@ jobs:
         run: |
           TAGS=$(git ls-remote --tags)
           # git ls-remote --tags | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}"
-          echo "--"
+          # echo "--"
           target_tag="v${{ steps.get-tag.outputs.PKG_VERSION }}"
+          echo $target_tag
           # result=$(git ls-remote --tags | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}")
-          if [[ TAGS =~  target_tag ]];then 
+          if [[ $TAGS =~ $target_tag ]];then
             echo "已有标签"
           else
             echo "new tag"
