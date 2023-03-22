@@ -23,7 +23,7 @@ jobs:
 
       - name: "Set Tag"
         shell: "bash"
-        run: |
+        run: >
           echo "TEST" > aaaa.txt;
           ls;
           git tag -d v${{ steps.get-tag.outputs.PKG_VERSION }}
