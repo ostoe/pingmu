@@ -25,6 +25,7 @@ jobs:
         shell: "bash"
         run: |
           git ls-remote --tags
+          git ls-remote --tags | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}"
           echo "--"
           result=$(git ls-remote --tags | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}")
           if [[ $result != "" ]];then 
