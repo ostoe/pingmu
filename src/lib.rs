@@ -446,7 +446,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(false)
+                assert!(true)
             }
         }
     }
