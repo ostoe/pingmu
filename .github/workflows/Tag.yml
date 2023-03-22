@@ -24,16 +24,12 @@ jobs:
       - name: "Set Tag"
         shell: "bash"
         run: |
-          echo "TEST" > aaaa.txt;
-          echo "fdsfs";
-          echo "----";
-          ls;
-          # git tag -d v${{ steps.get-tag.outputs.PKG_VERSION }};
-          result=$(git tag | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}";);
-          ls;
+          git ls-remote --tags
+          echo "--"
+          result=$(git ls-remote --tags | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}")
           if [[ $result != "" ]];then 
-            echo "已有标签";
+            echo "已有标签"
           else
-            echo "new tag";
+            echo "new tag"
             git tag v${{ steps.get-tag.outputs.PKG_VERSION }} && git push --tags
           fi
