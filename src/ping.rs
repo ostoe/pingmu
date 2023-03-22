@@ -1,4 +1,8 @@
+use crate::PingResult;
+use chrono::{DateTime, Utc};
 use log::trace;
+#[allow(unused_imports)]
+use log::{debug, error, info, log, warn};
 use pnet::packet::icmp::echo_request;
 use pnet::packet::icmp::IcmpTypes;
 use pnet::packet::icmpv6::{Icmpv6Types, MutableIcmpv6Packet};
@@ -11,19 +15,15 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Duration, Instant};
 use std::thread;
-use crate::PingResult;
-use chrono::{DateTime, Utc};
-#[allow(unused_imports)]
-use log::{log, error, info, warn, debug};
+use std::time::{Duration, Instant};
 
 pub struct Ping {
     addr: IpAddr,
     identifier: u16,
     sequence_number: u16,
     pub seen: bool,
-    pub send_time: Instant
+    pub send_time: Instant,
 }
 
 pub struct ReceivedPing {
@@ -31,7 +31,7 @@ pub struct ReceivedPing {
     pub identifier: u16,
     pub sequence_number: u16,
     pub rtt: Duration,
-    pub recv_time: Instant
+    pub recv_time: Instant,
 }
 
 impl Ping {
@@ -46,25 +46,21 @@ impl Ping {
             identifier,
             sequence_number: 0,
             seen: false,
-            send_time: send_time,
+            send_time,
         }
     }
 
-    pub fn get_addr(&self) -> IpAddr {
-        return self.addr;
-    }
-
     pub fn get_identifier(&self) -> u16 {
-        return self.identifier;
+         self.identifier
     }
 
     pub fn get_sequence_number(&self) -> u16 {
-        return self.sequence_number;
+         self.sequence_number
     }
 
     pub fn increment_sequence_number(&mut self) -> u16 {
         self.sequence_number += 1;
-        return self.sequence_number;
+        self.sequence_number
     }
 }
 
@@ -85,7 +81,7 @@ fn send_echo(
     let csum = icmp_checksum(&echo_packet);
     echo_packet.set_checksum(csum);
 
-    tx.send_to(echo_packet, ping.get_addr())
+    tx.send_to(echo_packet, ping.addr)
 }
 
 fn send_echov6(
@@ -105,7 +101,7 @@ fn send_echov6(
     tx.send_to(echo_packet, addr)
 }
 
-
+#[allow(clippy::too_many_arguments)]
 pub fn send_pings(
     size: usize,
     timer: &Arc<RwLock<Instant>>,
@@ -119,25 +115,26 @@ pub fn send_pings(
     interval: u64,
     // is_log: bool,
 ) {
-// loop {
+    // loop {
     let start_time_0 = Instant::now();
     for (addr, ping) in targets.lock().unwrap().iter_mut() {
-
         ping.send_time = Instant::now();
-        match if addr.is_ipv4() {
+        if let Err(e) = if addr.is_ipv4() {
             send_echo(&mut tx.lock().unwrap(), ping, size)
         } else if addr.is_ipv6() {
             send_echov6(&mut txv6.lock().unwrap(), *addr, size)
         } else {
             Ok(0)
         } {
-            Err(e) => error!("Failed to send ping to {:?}: {}", *addr, e),
-            _ => {}
+            error!("Failed to send ping to {:?}: {}", *addr, e);
         }
+        // {
+        //     Err(e) => error!("Failed to send ping to {:?}: {}", *addr, e),
+        //     _ => {}
+        // }
         ping.seen = false;
 
         thread::sleep(Duration::from_micros(interval));
-
     }
     debug!("send elapsed: {:?}", start_time_0.elapsed());
     // if is_log {  println!("send elapsed: {:?}", start_time_0.elapsed()); }
@@ -157,25 +154,26 @@ pub fn send_pings(
             // .recv_timeout(*max_rtt)
         {
             Ok(ping_result) => {
-                match ping_result {
-                    ReceivedPing {
-                        addr,
-                        identifier,
-                        sequence_number,
-                        rtt: _,
-                        recv_time,
-                    } => {
+                // let ReceivedPing {
+                //         addr,
+                //         identifier,
+                //         sequence_number,
+                //         rtt: _,
+                //         recv_time,
+                //     } = ping_result  
+                    {
                         // Update the address to the ping response being received
-                        if let Some(ping) = targets.lock().unwrap().get_mut(&addr) {
-                            if ping.get_identifier() == identifier
-                                && ping.get_sequence_number() == sequence_number
+                        if let Some(ping) = targets.lock().unwrap().get_mut(&ping_result.addr) {
+                            if ping.get_identifier() == ping_result.identifier
+                                && ping.get_sequence_number() == ping_result.sequence_number
                             {
                                 ping.seen = true;
                                 // Send the ping result over the client channel
                                 match results_sender.send(PingResult::Receive {
-                                    addr: addr,
+                                    addr: ping_result.addr,
                                     rtt: ping_result.rtt,
-                                    recv_duration: recv_time.duration_since(ping.send_time)
+                                    recv_duration: ping_result.recv_time.duration_since(ping.send_time),
+                                    
                                 }) {
                                     Ok(_) => {}
                                     Err(e) => {
@@ -188,11 +186,16 @@ pub fn send_pings(
                                     }
                                 }
                             } else {
-                                debug!("Received echo reply from target {}, but sequence_number (expected {} but got {}) and identifier (expected {} but got {}) don't match", addr, ping.get_sequence_number(), sequence_number, ping.get_identifier(), identifier);
+                                debug!("Received echo reply from target {}, but sequence_number (expected {} but got {}) and identifier (expected {} but got {}) don't match", 
+                                ping_result.addr, 
+                                ping.get_sequence_number(),
+                                ping_result.sequence_number, 
+                                 ping.get_identifier(), 
+                                 ping_result.identifier);
                             }
                         }
                     }
-                }
+                
             }
             Err(_) => {
                 // Check we haven't exceeded the max rtt
@@ -210,7 +213,7 @@ pub fn send_pings(
     // if is_log {     }
     // check for addresses which haven't replied
     for (addr, ping) in targets.lock().unwrap().iter() {
-        if ping.seen == false {
+        if !ping.seen {
             // Send the ping Idle over the client channel
             match results_sender.send(PingResult::Idle { addr: *addr }) {
                 Ok(_) => {}
@@ -227,7 +230,7 @@ pub fn send_pings(
     // if is_log {    }
     // check if we've received the stop signal
     if *stop.lock().unwrap() {
-        return;
+        // return;
     }
     // loop end }
 }

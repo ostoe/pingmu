@@ -1,15 +1,15 @@
 #[allow(unused_imports)]
-use log::{log, error, info, warn, debug};
+use log::{debug, error, info, log, warn};
 
 mod ping;
 pub mod save;
 
-pub use save::{ PingRecord, Delay };
+pub use save::{Delay, PingRecord};
 
 use ping::{send_pings, Ping, ReceivedPing};
-use pnet::packet::icmp::echo_reply::EchoReplyPacket;
+use pnet::packet::icmp::echo_reply::{EchoReplyPacket};
 use pnet::packet::ip::IpNextHeaderProtocols;
-use pnet::packet::Packet;
+use pnet::packet::{Packet};
 use pnet::packet::{icmp, icmpv6};
 use pnet::transport::transport_channel;
 use pnet::transport::TransportChannelType::Layer4;
@@ -18,11 +18,11 @@ use pnet::transport::{icmp_packet_iter, icmpv6_packet_iter};
 use pnet::transport::{TransportReceiver, TransportSender};
 use std::collections::BTreeMap;
 use std::net::IpAddr;
+use std::option::Option::Some;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
-use std::option::Option::Some;
 
 // result type returned by fastping_rs::Pinger::new()
 pub type NewPingerResult = Result<(Pinger, Receiver<PingResult>), String>;
@@ -30,8 +30,14 @@ pub type NewPingerResult = Result<(Pinger, Receiver<PingResult>), String>;
 // ping result type.  Idle represents pings that have not received a repsonse within the max_rtt.
 // Receive represents pings which have received a repsonse
 pub enum PingResult {
-    Idle { addr: IpAddr },
-    Receive { addr: IpAddr, rtt: Duration, recv_duration: Duration },
+    Idle {
+        addr: IpAddr,
+    },
+    Receive {
+        addr: IpAddr,
+        rtt: Duration,
+        recv_duration: Duration,
+    },
 }
 
 pub struct Pinger {
@@ -82,7 +88,10 @@ impl Pinger {
         let protocol = Layer4(Ipv4(IpNextHeaderProtocols::Icmp));
         let (tx, rx) = match transport_channel(4096, protocol) {
             Ok((tx, rx)) => (tx, rx),
-            Err(e) => {println!("error {:?}", e); return Err(e.to_string())},
+            Err(e) => {
+                println!("error {:?}", e);
+                return Err(e.to_string());
+            }
         };
 
         let protocolv6 = Layer4(Ipv6(IpNextHeaderProtocols::Icmpv6));
@@ -158,17 +167,17 @@ impl Pinger {
     }
 
     // run one round of pinging and stop
-    pub fn ping_once(&self, interval:u64, ) {
-        self.run_pings(Some(0), interval, )
+    pub fn ping_once(&self, interval: u64) {
+        self.run_pings(Some(0), interval)
     }
 
     // run the continuous pinger
-    pub fn run_pinger(&self, n: u32, interval:u64,) {
-        self.run_pings(Some(n), interval,)
+    pub fn run_pinger(&self, n: u32, interval: u64) {
+        self.run_pings(Some(n), interval)
     }
 
     // run pinger either once or continuously
-    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64, ) {
+    fn run_pings(&self, run_n_of_times: Option<u32>, interval: u64) {
         let thread_rx = self.thread_rx.clone();
         let tx = self.tx.clone();
         let txv6 = self.txv6.clone();
@@ -194,26 +203,23 @@ impl Pinger {
         }
         match run_n_of_times.unwrap() {
             0 => {
-                thread::spawn(move ||{
-                    loop {
-                        send_pings(
-                            size,
-                            &timer,
-                            &stop,
-                            &results_sender,
-                            &thread_rx,
-                            &tx,
-                            &txv6,
-                            &targets,
-                            &max_rtt,
-                            interval
-                            
-                        );
-                    }
+                thread::spawn(move || loop {
+                    send_pings(
+                        size,
+                        &timer,
+                        &stop,
+                        &results_sender,
+                        &thread_rx,
+                        &tx,
+                        &txv6,
+                        &targets,
+                        &max_rtt,
+                        interval,
+                    );
                 });
-            },
+            }
             ofn => {
-                thread::spawn( move || {
+                thread::spawn(move || {
                     for _ in 0..ofn {
                         send_pings(
                             size,
@@ -225,12 +231,10 @@ impl Pinger {
                             &txv6,
                             &targets,
                             &max_rtt,
-                            interval
-                            
+                            interval,
                         );
                     }
                 });
-
             }
         }
     }
@@ -249,8 +253,8 @@ impl Pinger {
             let mut iter = icmp_packet_iter(&mut receiver);
             loop {
                 match iter.next() {
-                    Ok((packet, addr)) => match EchoReplyPacket::new(packet.packet()) {
-                        Some(echo_reply) => {
+                    Ok((packet, addr)) => if let Some(echo_reply) = EchoReplyPacket::new(packet.packet()) {
+                        {
                             if packet.get_icmp_type() == icmp::IcmpType::new(0) {
                                 let start_time = timer.read().unwrap();
                                 match thread_tx.send(ReceivedPing {
@@ -277,8 +281,11 @@ impl Pinger {
                                 );
                             }
                         }
-                        None => {}
                     },
+                    // match EchoReplyPacket::new(packet.packet()) {
+                    //     Some(echo_reply) => ,
+                    //     None => {}
+                    // },
                     Err(e) => {
                         error!("An error occurred while reading: {}", e);
                     }
@@ -394,7 +401,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(true) // test 
+                assert!(true) // test
             }
         }
     }
@@ -451,5 +458,3 @@ mod tests {
         }
     }
 }
-
-

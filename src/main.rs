@@ -11,10 +11,10 @@ use log4rs::encode::pattern::PatternEncoder;
 // use fastping_rs::PingResult::{Idle, Receive};
 use chrono::{DateTime, Utc};
 use log::{debug, error, info, trace};
-use log4rs;
+// use log4rs;
 use pingmu::save;
 use pingmu::PingResult::{Idle, Receive};
-use pingmu::{ PingResult, Pinger};
+use pingmu::{PingResult, Pinger};
 use std::collections::HashMap;
 // use std::convert::TryInto;
 use std::fs::File;
@@ -28,12 +28,11 @@ use std::time::Duration;
 use std::path::PathBuf;
 use std::vec;
 // use std::vec;
-use clap::{CommandFactory};
+use clap::CommandFactory;
 
-use clap::{ Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 
-const HELP_AND_LIMITED: &str = 
-"eg. sudo ./pingmu  1.2.2.3/24 1.2.3.4-128 1.1.1.1-1.1.2.1
+const HELP_AND_LIMITED: &str = "eg. sudo ./pingmu  1.2.2.3/24 1.2.3.4-128 1.1.1.1-1.1.2.1
     sudo ./pingmu -c 1 1.2.3.4/30
     sudo ./pingmu -c 4 -input ips.txt -o output.csv 1.2.3.4/30\n
 tips: 1. Need sudo.
@@ -41,13 +40,10 @@ tips: 1. Need sudo.
 ";
 
 #[derive(Parser)]
-#[command(author, version, about, 
-    after_help = HELP_AND_LIMITED,
-    color=clap::ColorChoice::Auto,
-    long_about = "[pingmu] A tool can ping multi-ip addresses")]
+#[command(author, version, about, after_help = HELP_AND_LIMITED, color=clap::ColorChoice::Auto, long_about = "[pingmu] A tool can ping multi-ip addresses")]
 struct Cli {
     /// The number of icmp echo packges `ping`;
-    #[arg(short, long, default_value_t = 3,value_name = "count")]
+    #[arg(short, long, default_value_t = 3, value_name = "count")]
     count: u32,
 
     /// The Timeout for each icmp echo packge (/ms)
@@ -101,7 +97,6 @@ pub enum CliLevelFilter {
     Trace,
 }
 
-
 // impl fmt::Display for CliLevelFilter {
 //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 //         match self {
@@ -125,8 +120,16 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
-    trace!(" -c {:?} -i {:?} -t {:?} -l {:?} -in {:?} -o {:?} -cidr {:?}", cli.count, cli.interval, cli.timeout,
-     cli.loglevel, cli.input, cli.outputpath, cli.cidr);
+    trace!(
+        " -c {:?} -i {:?} -t {:?} -l {:?} -in {:?} -o {:?} -cidr {:?}",
+        cli.count,
+        cli.interval,
+        cli.timeout,
+        cli.loglevel,
+        cli.input,
+        cli.outputpath,
+        cli.cidr
+    );
 
     // You can see how many times a particular flag or argument occurred
     // Note, only flags can have multiple occurrences
@@ -151,12 +154,12 @@ fn main() {
     // }
 
     let level = match &cli.loglevel {
-            CliLevelFilter::Off => log::LevelFilter::Off,
-            CliLevelFilter::Error => log::LevelFilter::Error,
-            CliLevelFilter::Warn => log::LevelFilter::Warn,
-            CliLevelFilter::Info => log::LevelFilter::Info,
-            CliLevelFilter::Debug => log::LevelFilter::Debug,
-            CliLevelFilter::Trace => log::LevelFilter::Trace,
+        CliLevelFilter::Off => log::LevelFilter::Off,
+        CliLevelFilter::Error => log::LevelFilter::Error,
+        CliLevelFilter::Warn => log::LevelFilter::Warn,
+        CliLevelFilter::Info => log::LevelFilter::Info,
+        CliLevelFilter::Debug => log::LevelFilter::Debug,
+        CliLevelFilter::Trace => log::LevelFilter::Trace,
     };
 
     let level_patton = HashMap::from([
@@ -180,38 +183,37 @@ fn main() {
     log4rs::init_config(log_config).unwrap();
 
     let mut ips_vec = vec![];
-        if let Some(input_path) = cli.input.as_deref() {
-            debug!("Value for config: {}", input_path.display());
-            if let Ok(lines) = read_lines(input_path) {
-                // 使用迭代器，返回一个（可选）字符串
-                for line in lines {
-                    if let Ok(ip) = line {
-                        ips_vec .append( &mut parse_str_cidr_or_range_to_ip_list(&ip) );
-                        // let ip = Ipv4Addr::from_str(&ip)
-                        //     .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
-                        // ips_vec.push(ip.to_string());
-                    }
-                }
+    if let Some(input_path) = cli.input.as_deref() {
+        debug!("Value for config: {}", input_path.display());
+        if let Ok(lines) = read_lines(input_path) {
+            // 使用迭代器，返回一个（可选）字符串
+            for ip in lines.flatten() {
+                // if let Ok(ip) = line {
+                    ips_vec.append(&mut parse_str_cidr_or_range_to_ip_list(&ip));
+                    // let ip = Ipv4Addr::from_str(&ip)
+                    //     .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
+                    // ips_vec.push(ip.to_string());
+                // }
             }
         }
+    }
 
     let filename = match cli.outputpath {
         Some(path) => {
             let path1 = path.into_os_string().into_string().unwrap();
             Some(check_file(&path1))
-        },
+        }
         None => None,
     };
 
-    let is_log = if CliLevelFilter::Off == cli.loglevel {false} else {true};
-
+    let is_log =  CliLevelFilter::Off != cli.loglevel;
 
     for cidr in &cli.cidr {
         let ip_string = (cidr).trim();
-        ips_vec .append( &mut parse_str_cidr_or_range_to_ip_list(ip_string) );
+        ips_vec.append(&mut parse_str_cidr_or_range_to_ip_list(ip_string));
     }
 
-    if ips_vec.len() == 0 {
+    if ips_vec.is_empty() {
         Cli::command().print_help().unwrap();
         // error!("no ip input");
         std::process::exit(1);
@@ -229,18 +231,20 @@ fn main() {
     } else {
         trace!("{:?}", ips_vec);
     }
-    
 
-// }
+    // }
 
-// fn main1() {
-//     let (ping_times, timeout, interval, filename, ips_vec, is_log) = detect_cli_input();
+    // fn main1() {
+    //     let (ping_times, timeout, interval, filename, ips_vec, is_log) = detect_cli_input();
     // let m = PingRecord {
     //     ipaddress: "192.168.1.1".to_string(),
     //     delay: vec![Delay::Idle, Delay::DelayTime(Duration::from_millis(100)), Delay::DelayTime(Duration::from_millis(200)),]
     // };
     // pretty_env_logger::init();
-    debug!("{} {} {} {:?} {:?} {} {}", cli.count, cli.timeout, cli.interval, filename, ips_vec, is_log, level);
+    debug!(
+        "{} {} {} {:?} {:?} {} {}",
+        cli.count, cli.timeout, cli.interval, filename, ips_vec, is_log, level
+    );
     let (pinger, results) = match Pinger::new(Some(cli.timeout), Some(64)) {
         Ok((pinger, results)) => (pinger, results),
         Err(e) => panic!("Error creating pinger: {}", e),
@@ -263,8 +267,12 @@ fn main() {
     debug!("ALL ip ping of times: {}", count);
     let mut epoch_reset_count: u64 = 0;
     let (ctrlc_tx, ctrlc_rx) = channel();
-    ctrlc::set_handler(move || ctrlc_tx.send(()).expect("Could not send signal on channel."))
-        .expect("Error setting Ctrl-C handler");
+    ctrlc::set_handler(move || {
+        ctrlc_tx
+            .send(())
+            .expect("Could not send signal on channel.")
+    })
+    .expect("Error setting Ctrl-C handler");
     println!("Press Ctrl-C to stop...");
     let mut ping_record_result: Vec<PingResult> = vec![];
     loop {
@@ -281,12 +289,12 @@ fn main() {
                     } => {
                         // let now: DateTime<Utc> = Utc::now();
                         // if is_log {
-                            debug!(
-                                "Receive from Address {} in {:?}.",
-                                // now.format("%H:%M:%S"),
-                                addr,
-                                recv_duration
-                            );
+                        debug!(
+                            "Receive from Address {} in {:?}.",
+                            // now.format("%H:%M:%S"),
+                            addr,
+                            recv_duration
+                        );
                         // }
                     }
                 }
@@ -360,8 +368,8 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     if args.len() <= 1 || args[1].as_str() == "-h" {
         println!("do not > 4w ips"); //DOTO write to help.
         help_table.printstd();
-        println!("example:\n {} \n {}",  "sudo ./pingmu 4 192.168.1.1/24 192.168.1.2/31",
-        "sudo ./pingmu 4 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
+        println!("example:\n sudo ./pingmu 4 192.168.1.1/24 192.168.1.2/31 \n
+        sudo ./pingmu 4 2000 100 input.text out.csv nolog 192.168.1.1/30 10.0.0.1-10.0.0.5 127.0.0.1");
         let mut help_table = Table::new();
         // help_table.add_row(row!["ip", "loss(%)", "min(ms)", "avg(ms)", "max(ms)", "stddev(ms)"]);
         println!("\nout.csv: value example");
@@ -410,24 +418,24 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     };
 
     // check text
-    if (&args[sub_v_flag]).contains(".text") || (&args[sub_v_flag]).starts_with("input") {
+    if args[sub_v_flag].contains(".text") || args[sub_v_flag].starts_with("input") {
         // println!("detect input file");
-        if let Ok(lines) = read_lines(args[sub_v_flag].to_string()) {
+        if let Ok(lines) = read_lines(&args[sub_v_flag]) {
             // 使用迭代器，返回一个（可选）字符串
-            for line in lines {
-                if let Ok(ip) = line {
+            for ip in lines.flatten() {
+                // if let Ok(ip) = line {
                     let ip = ip.trim().to_string();
                     let ip = Ipv4Addr::from_str(&ip)
                         .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
                     ips_vec.push(ip.to_string());
-                }
+                // }
             }
         }
 
         sub_v_flag += 1;
     }
     // check .csv
-    if (&args[sub_v_flag]).ends_with(".csv") {
+    if args[sub_v_flag].ends_with(".csv") {
         // check_file(args[sub_v_flag])
         let x = check_file(&args[sub_v_flag].to_string());
         println!("will out to {}", x);
@@ -437,23 +445,23 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 
     // check is DE log; default log print.
     let mut is_log = true;
-    if sub_v_flag < (&args).len() && (&args[sub_v_flag]).contains("nolog") {
+    if sub_v_flag < args.len() && (&args)[sub_v_flag].contains("nolog") {
         is_log = false;
         sub_v_flag += 1;
     }
-
-    for i in sub_v_flag..args.len() {
-        let ip_string = (&args[i]).trim();
+    for ip_string in args.iter().skip(sub_v_flag) {
+    // for i__ in sub_v_flag..args.len() {
+        let ip_string = ip_string.trim();
         // println!("{}", ip_string);
-        if ip_string.contains("-") {
+        if ip_string.contains('-') {
             ips_vec.append(&mut ip_range_to_list(ip_string));
-        } else if ip_string.contains("/") {
+        } else if ip_string.contains('/') {
             let ips =
                 ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
             for x in ips.iter() {
                 ips_vec.push(x.to_string());
             }
-        } else if ip_string.contains(".") {
+        } else if ip_string.contains('.') {
             let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
             ips_vec.push(ip.to_string());
         } else {
@@ -461,7 +469,7 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
         }
     }
 
-    if ips_vec.len() == 0 {
+    if ips_vec.is_empty() {
         error!("no ip input");
         std::process::exit(0);
     } else if ips_vec.len() > 20 {
@@ -478,7 +486,7 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     } else {
         trace!("{:?}", ips_vec);
     }
-    return (times, timeout, interval, filename, ips_vec, is_log);
+     (times, timeout, interval, filename, ips_vec, is_log)
 }
 
 /// 解析cidr or ip范围为地址列表，cidr自动跳过网络位和广播位
@@ -488,49 +496,63 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
 fn parse_str_cidr_or_range_to_ip_list(ip_input: &str) -> Vec<String> {
     let mut ips_vec = vec![];
     let ip_string = (ip_input).trim();
-        // println!("{}", ip_string);
-        if ip_string.contains("-") {
-            ips_vec.append(&mut ip_range_to_list(ip_string));
-        } else if ip_string.contains("/") {
-            let ips =
-                ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
-            let mut ips_iter = ips.iter();
-            ips_iter.next(); // pop network addr. 去除网络地址
-            
-            debug!("{}--{} {:?} {:?}", ips.prefix(), ips.network(), ips.broadcast(), ips.size());
-            for x in ips_iter {
-                // if !x.to_string().ends_with(".0") {
-                    ips_vec.push(x.to_string());
-                // }
-            }
-            match ips.size() {
-                ipnetwork::NetworkSize::V4(num) => 
-                    if num > 1 {ips_vec.pop();}, // pop broadcast
-                ipnetwork::NetworkSize::V6(_) => {},
-            }
-        } else if ip_string.contains(".") {
-            let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
-            ips_vec.push(ip.to_string());
-        } else {
-            info!("error input, skiped: {}", ip_input);
-        }
-        ips_vec
-}
+    // println!("{}", ip_string);
+    if ip_string.contains('-') {
+        ips_vec.append(&mut ip_range_to_list(ip_string));
+    } else if ip_string.contains('/') {
+        let ips =
+            ipnetwork::IpNetwork::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
+        let mut ips_iter = ips.iter();
+        ips_iter.next(); // pop network addr. 去除网络地址
 
+        debug!(
+            "{}--{} {:?} {:?}",
+            ips.prefix(),
+            ips.network(),
+            ips.broadcast(),
+            ips.size()
+        );
+        for x in ips_iter {
+            // if !x.to_string().ends_with(".0") {
+            ips_vec.push(x.to_string());
+            // }
+        }
+        match ips.size() {
+            ipnetwork::NetworkSize::V4(num) => {
+                if num > 1 {
+                    ips_vec.pop();
+                }
+            } // pop broadcast
+            ipnetwork::NetworkSize::V6(_) => {}
+        }
+    } else if ip_string.contains('.') {
+        let ip = Ipv4Addr::from_str(ip_string).unwrap_or_else(move |e| panic!("{}", e));
+        ips_vec.push(ip.to_string());
+    } else {
+        info!("error input, skiped: {}", ip_input);
+    }
+    ips_vec
+}
 
 /// parse ipaddr range to vec<String>
 fn ip_range_to_list(ip_range: &str) -> Vec<String> {
-    let (ip_from, ip_to) = ip_range.split_once("-").expect("input error");
-    let ip_from_arr: [&str; 4] = ip_from.splitn(4, ".").collect::<Vec<&str>>().try_into().expect("input ip error");
-    if ip_from_arr.len() != 4 {panic!("error input")}
-    let ip_to_vec: Vec<&str> = ip_to.splitn(4, ".").collect();
+    let (ip_from, ip_to) = ip_range.split_once('-').expect("input error");
+    let ip_from_arr: [&str; 4] = ip_from
+        .splitn(4, '.')
+        .collect::<Vec<&str>>()
+        .try_into()
+        .expect("input ip error");
+    if ip_from_arr.len() != 4 {
+        panic!("error input")
+    }
+    let ip_to_vec: Vec<&str> = ip_to.splitn(4, '.').collect();
     let mut ip_to_arr: [&str; 4] = [""; 4];
     let concat_index = ip_from_arr.len() - ip_to_vec.len();
     for x in 0..4 {
         ip_to_arr[x] = if x < concat_index {
             ip_from_arr[x]
         } else {
-            ip_to_vec[x-concat_index]
+            ip_to_vec[x - concat_index]
         }
     }
     let ip_from_arr = ip_from_arr.map(|a| a.parse::<u8>().unwrap());
@@ -546,23 +568,27 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
         ip_to_big_int += ip_to_arr[x] as u32;
     }
 
-    trace!("ip-range_to-list: {:?} {:?} {} {} ",ip_from_arr, ip_to_arr, ip_from_big_int, ip_to_big_int);
-
+    trace!(
+        "ip-range_to-list: {:?} {:?} {} {} ",
+        ip_from_arr,
+        ip_to_arr,
+        ip_from_big_int,
+        ip_to_big_int
+    );
 
     let mut ip_vec: Vec<String> = vec![];
     for mut ip_big_int in ip_from_big_int..=ip_to_big_int {
-        let mut ip_u8_arr = [0u8; 4];
-        for x in 0..4 {
-             let ip_shift_int = ip_big_int >> ((3-x)*8); // 3232236034 >> 24 == 192
-            //  ip_str[x] = &ip_u8_int.to_string();
-            ip_big_int -= ip_shift_int << ((3-x)*8);  // 减去从左侧起第一个8位的数
-            ip_u8_arr[x] = ip_shift_int as u8;
+        let mut ip_u8_arr: [u8; 4] = [0u8; 4];
+        for (x, item) in ip_u8_arr.iter_mut().enumerate() {
+            let ip_shift_int = ip_big_int >> ((3 - x) * 8); // 3232236034 >> 24 == 192
+                                                            //  ip_str[x] = &ip_u8_int.to_string();
+            ip_big_int -= ip_shift_int << ((3 - x) * 8); // 减去从左侧起第一个8位的数
+            *item = ip_shift_int as u8;
         }
         // trace!("ip_u8_arr: {:?}", ip_u8_arr);
         let ip_str = ip_u8_arr.map(|a| a.to_string()).join(".");
         ip_vec.push(ip_str);
     }
-
 
     // let x: Vec<&str> = ip_range.split("-").collect();
     // trace!("split: {:?}", x);
@@ -597,17 +623,20 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
     //         // 两位 hex 转为 十进制表示
     //         u8::from_str_radix(a, 16).unwrap().to_string()
     //     });
-    //     ip_vec.push(ip_u8_arr.join("."));
+    //     ip_vec.push(ip_u8_arr.join('.'));
     // }
     ip_vec
 }
 
 /// parse ipaddr to hex:
 /// "192.168.1.64"  -> "c0a80140"
-fn ip_str_to_hex<'a>(s: &'a str) -> String {
-    // let ip1_arr : &[&str] = s.split(".").collect();
-    let ip1_vec: Vec<&str> = s.split(".").collect();
-    let ip1_str_arr: Vec<String> = ip1_vec.into_iter().map(|a| format!("{:0>2x}", a.parse::<u8>().unwrap() ))
+#[allow(unused)]
+fn ip_str_to_hex(s: & str) -> String {
+    // let ip1_arr : &[&str] = s.split('.').collect();
+    let ip1_vec: Vec<&str> = s.split('.').collect();
+    let ip1_str_arr: Vec<String> = ip1_vec
+        .into_iter()
+        .map(|a| format!("{:0>2x}", a.parse::<u8>().unwrap()))
         .collect();
     // let ip1_arr: [&str; 4] = ip1_vec.try_into().unwrap();
     // let ip1_str_arr = ip1_arr.map(move |a| format!("{:0>2x}", a.parse::<u8>().unwrap()));
@@ -626,39 +655,40 @@ where
 fn check_file(path: &str) -> String {
     // std::fs::metadata(path).is_ok();
     let path = path.trim();
-    let out_path;// = String::from(path);
-    if Path::new(path).is_file() || path.ends_with(".csv") { // file is existed.
+    let out_path= if Path::new(path).is_file() || path.ends_with(".csv") {
+        // file is existed.
         let now: DateTime<Utc> = Utc::now();
         let time_s = now.format("%Y%m%d_%H%M%S").to_string();
-        // let s_vec: Vec<&str> = path.split(".").collect();
+        // let s_vec: Vec<&str> = path.split('.').collect();
         // let mut a: String = (&s_vec[0..(s_vec.len() - 1)]).join("");
         // // let f_now = time::strftime("%Y%m%d_%H%M%S", &now).unwrap();
         // // let b = &s_vec[s_vec.len()-1];
         // a.push_str(&time_s);
         // a.push_str(".csv");
         // return a;
-            out_path =  
-            [path.rsplit_once(".csv").unwrap_or((path, "")).0,
-            &time_s, ".csv"].concat().to_string();
+        [
+            path.rsplit_once(".csv").unwrap_or((path, "")).0,
+            &time_s,
+            ".csv",
+        ]
+        .concat()
         
     } else {
-        out_path = [path, ".csv"].concat();
-    }
-    return out_path;
+        [path, ".csv"].concat()
+    };
+     out_path
     // let file =  std::fs::try_exists(path);
 }
-
 
 #[cfg(test)]
 mod tests {
 
     #[test]
     fn test_a() {
-        let a: Vec<&str> = "11.2.1.1".splitn(4, ".").collect();
+        let a: Vec<&str> = "11.2.1.1".splitn(4, '.').collect();
         let ip_to_arr: [&str; 4] = a.try_into().unwrap();
         println!("{:?}", ip_to_arr);
-        let arr: [&str;4] = [""; 4];
+        let arr: [&str; 4] = [""; 4];
         println!("{:?}", arr);
-
     }
 }
