@@ -7,9 +7,9 @@ pub mod save;
 pub use save::{Delay, PingRecord};
 
 use ping::{send_pings, Ping, ReceivedPing};
-use pnet::packet::icmp::echo_reply::{EchoReplyPacket};
+use pnet::packet::icmp::echo_reply::EchoReplyPacket;
 use pnet::packet::ip::IpNextHeaderProtocols;
-use pnet::packet::{Packet};
+use pnet::packet::Packet;
 use pnet::packet::{icmp, icmpv6};
 use pnet::transport::transport_channel;
 use pnet::transport::TransportChannelType::Layer4;
@@ -253,35 +253,40 @@ impl Pinger {
             let mut iter = icmp_packet_iter(&mut receiver);
             loop {
                 match iter.next() {
-                    Ok((packet, addr)) => if let Some(echo_reply) = EchoReplyPacket::new(packet.packet()) {
-                        {
-                            if packet.get_icmp_type() == icmp::IcmpType::new(0) {
-                                let start_time = timer.read().unwrap();
-                                match thread_tx.send(ReceivedPing {
-                                    addr,
-                                    identifier: echo_reply.get_identifier(),
-                                    sequence_number: echo_reply.get_sequence_number(),
-                                    rtt: Instant::now().duration_since(*start_time),
-                                    recv_time: Instant::now(),
-                                }) {
-                                    Ok(_) => {}
-                                    Err(e) => {
-                                        if !*stop.lock().unwrap() {
-                                            error!("Error sending ping result on channel: {}", e)
-                                        } else {
-                                            return;
+                    Ok((packet, addr)) => {
+                        if let Some(echo_reply) = EchoReplyPacket::new(packet.packet()) {
+                            {
+                                if packet.get_icmp_type() == icmp::IcmpType::new(0) {
+                                    let start_time = timer.read().unwrap();
+                                    match thread_tx.send(ReceivedPing {
+                                        addr,
+                                        identifier: echo_reply.get_identifier(),
+                                        sequence_number: echo_reply.get_sequence_number(),
+                                        rtt: Instant::now().duration_since(*start_time),
+                                        recv_time: Instant::now(),
+                                    }) {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            if !*stop.lock().unwrap() {
+                                                error!(
+                                                    "Error sending ping result on channel: {}",
+                                                    e
+                                                )
+                                            } else {
+                                                return;
+                                            }
                                         }
                                     }
+                                } else {
+                                    debug!(
+                                        "ICMP type other than reply (0) received from {:?}: {:?}",
+                                        addr,
+                                        packet.get_icmp_type()
+                                    );
                                 }
-                            } else {
-                                debug!(
-                                    "ICMP type other than reply (0) received from {:?}: {:?}",
-                                    addr,
-                                    packet.get_icmp_type()
-                                );
                             }
                         }
-                    },
+                    }
                     // match EchoReplyPacket::new(packet.packet()) {
                     //     Some(echo_reply) => ,
                     //     None => {}

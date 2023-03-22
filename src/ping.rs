@@ -51,11 +51,11 @@ impl Ping {
     }
 
     pub fn get_identifier(&self) -> u16 {
-         self.identifier
+        self.identifier
     }
 
     pub fn get_sequence_number(&self) -> u16 {
-         self.sequence_number
+        self.sequence_number
     }
 
     pub fn increment_sequence_number(&mut self) -> u16 {
@@ -173,7 +173,6 @@ pub fn send_pings(
                                     addr: ping_result.addr,
                                     rtt: ping_result.rtt,
                                     recv_duration: ping_result.recv_time.duration_since(ping.send_time),
-                                    
                                 }) {
                                     Ok(_) => {}
                                     Err(e) => {
@@ -187,15 +186,14 @@ pub fn send_pings(
                                 }
                             } else {
                                 debug!("Received echo reply from target {}, but sequence_number (expected {} but got {}) and identifier (expected {} but got {}) don't match", 
-                                ping_result.addr, 
-                                ping.get_sequence_number(),
-                                ping_result.sequence_number, 
-                                 ping.get_identifier(), 
-                                 ping_result.identifier);
+                                    ping_result.addr,
+                                    ping.get_sequence_number(),
+                                    ping_result.sequence_number,
+                                    ping.get_identifier(),
+                                    ping_result.identifier);
                             }
                         }
                     }
-                
             }
             Err(_) => {
                 // Check we haven't exceeded the max rtt

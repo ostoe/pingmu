@@ -140,7 +140,7 @@ pub fn save_result(
             line.push(format!("{:.2}", min));
             let avg = sum / (not_idle_array.len() as f64);
             line.push(format!("{:.2}", avg));
-            if global_max_ms < max  {
+            if global_max_ms < max {
                 global_max_ms = max;
             }
             global_avg_ms += avg;

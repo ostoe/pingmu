@@ -189,10 +189,10 @@ fn main() {
             // 使用迭代器，返回一个（可选）字符串
             for ip in lines.flatten() {
                 // if let Ok(ip) = line {
-                    ips_vec.append(&mut parse_str_cidr_or_range_to_ip_list(&ip));
-                    // let ip = Ipv4Addr::from_str(&ip)
-                    //     .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
-                    // ips_vec.push(ip.to_string());
+                ips_vec.append(&mut parse_str_cidr_or_range_to_ip_list(&ip));
+                // let ip = Ipv4Addr::from_str(&ip)
+                //     .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
+                // ips_vec.push(ip.to_string());
                 // }
             }
         }
@@ -206,7 +206,7 @@ fn main() {
         None => None,
     };
 
-    let is_log =  CliLevelFilter::Off != cli.loglevel;
+    let is_log = CliLevelFilter::Off != cli.loglevel;
 
     for cidr in &cli.cidr {
         let ip_string = (cidr).trim();
@@ -424,10 +424,10 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
             // 使用迭代器，返回一个（可选）字符串
             for ip in lines.flatten() {
                 // if let Ok(ip) = line {
-                    let ip = ip.trim().to_string();
-                    let ip = Ipv4Addr::from_str(&ip)
-                        .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
-                    ips_vec.push(ip.to_string());
+                let ip = ip.trim().to_string();
+                let ip = Ipv4Addr::from_str(&ip)
+                    .unwrap_or_else(move |e| panic!("convert ip error: {}", e));
+                ips_vec.push(ip.to_string());
                 // }
             }
         }
@@ -450,7 +450,7 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
         sub_v_flag += 1;
     }
     for ip_string in args.iter().skip(sub_v_flag) {
-    // for i__ in sub_v_flag..args.len() {
+        // for i__ in sub_v_flag..args.len() {
         let ip_string = ip_string.trim();
         // println!("{}", ip_string);
         if ip_string.contains('-') {
@@ -486,7 +486,7 @@ fn _detect_cli_input() -> (u32, u32, u64, Option<String>, Vec<String>, bool) {
     } else {
         trace!("{:?}", ips_vec);
     }
-     (times, timeout, interval, filename, ips_vec, is_log)
+    (times, timeout, interval, filename, ips_vec, is_log)
 }
 
 /// 解析cidr or ip范围为地址列表，cidr自动跳过网络位和广播位
@@ -631,7 +631,7 @@ fn ip_range_to_list(ip_range: &str) -> Vec<String> {
 /// parse ipaddr to hex:
 /// "192.168.1.64"  -> "c0a80140"
 #[allow(unused)]
-fn ip_str_to_hex(s: & str) -> String {
+fn ip_str_to_hex(s: &str) -> String {
     // let ip1_arr : &[&str] = s.split('.').collect();
     let ip1_vec: Vec<&str> = s.split('.').collect();
     let ip1_str_arr: Vec<String> = ip1_vec
@@ -655,7 +655,7 @@ where
 fn check_file(path: &str) -> String {
     // std::fs::metadata(path).is_ok();
     let path = path.trim();
-    let out_path= if Path::new(path).is_file() || path.ends_with(".csv") {
+    let out_path = if Path::new(path).is_file() || path.ends_with(".csv") {
         // file is existed.
         let now: DateTime<Utc> = Utc::now();
         let time_s = now.format("%Y%m%d_%H%M%S").to_string();
@@ -672,11 +672,10 @@ fn check_file(path: &str) -> String {
             ".csv",
         ]
         .concat()
-        
     } else {
         [path, ".csv"].concat()
     };
-     out_path
+    out_path
     // let file =  std::fs::try_exists(path);
 }
 
