@@ -24,7 +24,7 @@ jobs:
       - name: "Set Tag"
         shell: "bash"
         run: |
-          echo "TEST";
+          echo "TEST" > aaaa.txt;
           result=$(git tag | grep "v${{ steps.get-tag.outputs.PKG_VERSION }}");
           if [[ $result != "" ]];then 
             echo "已有标签";
