@@ -82,7 +82,7 @@ impl Pinger {
         let protocol = Layer4(Ipv4(IpNextHeaderProtocols::Icmp));
         let (tx, rx) = match transport_channel(4096, protocol) {
             Ok((tx, rx)) => (tx, rx),
-            Err(e) => {println!("error {:?}", e); return Err(e.to_string())},
+            Err(e) => return Err(e.to_string()),
         };
 
         let protocolv6 = Layer4(Ipv6(IpNextHeaderProtocols::Icmpv6));
@@ -364,7 +364,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(true)
+                assert!(false)
             }
         };
     }
@@ -394,7 +394,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(true) // test 
+                assert!(false) // test 
             }
         }
     }
@@ -409,7 +409,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(true)
+                assert!(false)
             }
         }
     }
@@ -446,7 +446,7 @@ mod tests {
             }
             Err(e) => {
                 error!("Test failed: {}", e);
-                assert!(true)
+                assert!(false)
             }
         }
     }
