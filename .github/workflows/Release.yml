@@ -96,7 +96,7 @@ jobs:
           bin: ${{ needs.get-tag.outputs.bin-name }} 
           target: ${{ matrix.target }}
           archive: $bin-${{ matrix.target }}
-          tar: none
+          # tar: none
           ref: refs/tags/v${{ needs.get-tag.outputs.pkg-version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
