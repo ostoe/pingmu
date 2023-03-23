@@ -3,7 +3,7 @@ name: "Tag"
 on:
   push:
     branches:
-      - "release"
+      - "master"
 
 jobs:
   create-tag:

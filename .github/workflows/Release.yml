@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - "release"
+      - "master"
   workflow_run:
     workflows: ["Tag", "Test"]
     types:
@@ -66,7 +66,7 @@ jobs:
         with:
           # (optional) Path to changelog.
           # changelog: CHANGELOG.md
-          branch: "release"
+          branch: "master"
           ref: refs/tags/v${{ needs.get-tag.outputs.pkg-version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
